@@ -1,0 +1,70 @@
+---
+title: "Untitled"
+author: "Ángela Alarcón Ballester, Lucía Ponce Salmerón y Carlos Sánchez Polo"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+Cargamos librerías:
+```{r}
+library(readr)
+library(dplyr)
+```
+
+Cargamos y visualizamos nuestros datos:
+```{r}
+rvvcca_d_horarios_2016_2020 <- read_delim("ProyectoAED2023_files/data/rvvcca_d_horarios_2016-2020.csv", delim = ";", escape_double = FALSE, col_types = cols(Fecha = col_date(format = "%Y-%m-%d"), `Fecha creacion` = col_date(format = "%Y-%m-%d"), ), trim_ws = TRUE)
+head(rvvcca_d_horarios_2016_2020)   
+```
+
+Nos damos cuenta de que la columna `Hora` está en un formato complejo de manejar:
+```{r}
+unique(rvvcca_d_horarios_2016_2020$Hora)
+```
+
+Cambiamos el formato de la columna `Hora` a uno más manejable:
+```{r}
+rvvcca_d_horarios_2016_2020$Hora <- format(rvvcca_d_horarios_2016_2020$Hora, format="%H:%M:%S")
+unique(rvvcca_d_horarios_2016_2020$Hora)
+```
+
+Visualizamos nuestros datos de nuevo:
+```{r}
+head(rvvcca_d_horarios_2016_2020)
+```
+
+Ordenamos por fecha:
+```{r}
+indices_orden <- order(rvvcca_d_horarios_2016_2020$Fecha)
+rvvcca_d_horarios_2016_2020 <- rvvcca_d_horarios_2016_2020[indices_orden, ]
+```
+                        
+Comprobamos que la columna `Fecha baja` está vacía y la eliminamos:                            
+```{r}
+unique(rvvcca_d_horarios_2016_2020$`Fecha baja`)
+rvvcca_d_horarios_2016_2020$`Fecha baja` <- NULL
+```
+
+Ahora agrupamos nuestro dataframe por `Estacion` y creamos una lista que contenga un dataframe para cada estación y cuyo nombre sea la estación en cuestión:  
+```{r}
+grupos <- rvvcca_d_horarios_2016_2020 %>% group_by(Estacion)
+
+lista_dataframes <- split(grupos, f = grupos$Estacion)
+
+nombres_dataframes <- unique(rvvcca_d_horarios_2016_2020$Estacion)
+lista_dataframes <- setNames(lista_dataframes, nombres_dataframes)
+```
+
+Limpiamos las columnas vacías de cada dataframe:
+```{r}
+for (estacion in nombres_dataframes) {
+  lista_dataframes[[estacion]] <- lista_dataframes[[estacion]] %>%
+    select_if(~!all(is.na(.)))
+}
+```
+
+Convertimos la lista de dataframes en dataframes independientes:
+```{r}
+list2env(lista_dataframes, envir = .GlobalEnv)
+```
+
