@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Documento de cambios"
 author: "Ángela Alarcón Ballester, Lucía Ponce Salmerón y Carlos Sánchez Polo"
 date: "`r Sys.Date()`"
 output: html_document
@@ -67,4 +67,29 @@ Convertimos la lista de dataframes en dataframes independientes:
 ```{r}
 list2env(lista_dataframes, envir = .GlobalEnv)
 ```
+
+```{r}
+# Crear una lista con los nombres de los parámetros a observar
+parametros <- names(`Puerto Valencia`)
+
+# Crear un dataframe vacío con las zonas como filas y los parámetros como columnas
+tabla_zonas <- data.frame(Zona = character(0), stringsAsFactors = FALSE)
+
+# Iterar sobre los dataframes y extraer los nombres de las columnas
+for (zona in 1:length(lista_dataframes)) {
+  # Crear una fila con el nombre de la zona
+  fila_zona <- data.frame(Zona = names(lista_dataframes)[zona], stringsAsFactors = FALSE)
+  
+  # Iterar sobre los parámetros y agregar TRUE o FALSE según si existen en la zona
+  for (parametro in parametros) {
+    fila_zona[[parametro]] <- parametro %in% colnames(lista_dataframes[[zona]])
+  }
+  
+  # Unir la fila de la zona al dataframe
+  tabla_zonas <- rbind(tabla_zonas, fila_zona)
+}
+
+```
+
+
 
