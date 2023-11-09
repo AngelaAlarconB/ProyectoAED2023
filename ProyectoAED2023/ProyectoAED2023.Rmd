@@ -41,75 +41,129 @@ registros de la calidad del aire por horas en zonas de Valencia. Vamos a
 realizar una exploración inicial de los datos y responderemos las
 preguntas que se deriven de ellos.
 
-## Carga de librerías y ficheros de datos
+# Importación y acondicionamiento de los datos
 
-Primero de todo, cargamos la librerías que necesitaremos en el proyecto:
+Cargamos la librerías que necesitaremos a lo largo del proyecto:
 ```{r}
-library(readr)
-library(dplyr)
+library(readr) # Entrada de datos
+library(dplyr) # Manipulación de datos
+library(ggplot2) # Para las gráficas
 ```
 
+Cargamos y visualizamos los datos:
+```{r}
+rvvcca_d_horarios_2016_2020 <- read_delim("ProyectoAED2023_files/data/rvvcca_d_horarios_2016-2020.csv",
+  delim = ";", escape_double = FALSE, 
+  #Las columnas Fecha y Fecha creación las definimos como fechas en formato "YYYY-MM-DD".         
+  col_types = cols(Fecha = col_date(format = "%Y-%m-%d"), 
+  `Fecha creacion` = col_date(format = "%Y-%m-%d"), ), trim_ws = TRUE) 
+
+head(rvvcca_d_horarios_2016_2020)   
+```
+
+Nos damos cuenta de que la columna `Hora` está en un formato complejo de manejar:
+```{r}
+unique(rvvcca_d_horarios_2016_2020$Hora)
+```
+
+Cambiamos el formato de la columna `Hora` a uno más manejable:
+```{r}
+rvvcca_d_horarios_2016_2020$Hora <- format(rvvcca_d_horarios_2016_2020$Hora, format="%H:%M:%S")
+unique(rvvcca_d_horarios_2016_2020$Hora)
+```
+
+Ordenamos por fecha:
+```{r}
+indices_orden <- order(rvvcca_d_horarios_2016_2020$Fecha)
+rvvcca_d_horarios_2016_2020 <- rvvcca_d_horarios_2016_2020[indices_orden, ]
+```
+                        
+Comprobamos que la columna `Fecha baja` está vacía, por tanto, no nos aporta ninguna información y la eliminamos:                            
+```{r}
+unique(rvvcca_d_horarios_2016_2020$`Fecha baja`)
+rvvcca_d_horarios_2016_2020$`Fecha baja` <- NULL
+```
+
+Por último, visualizamos el estado actual de nuestros datos:
+```{r}
+head(rvvcca_d_horarios_2016_2020)
+tail(rvvcca_d_horarios_2016_2020)
+```
+
+
+# Valores faltantes
+
+El estudio de los valores faltantes es esencial para garantizar que los análisis de datos sean sólidos y confiables. Como en la tabla previa hemos identificado valores faltantes en los datos, en este apartado procederemos a analizarlos. Primero realizamos un resumen de la cantidad de valores faltantes en cada columna:
+```{r}
+valores_faltantes <- sapply(rvvcca_d_horarios_2016_2020, function(x) sum(is.na(x)))
+valores_faltantes
+```
+
+Creamos un gráfico de barras para visualizar mejor la proporción:
+```{r fig1,fig.width=3,fig.cap="Proporciones de valores faltantes.\\label{fig:fig1}"}
+valores_faltantes_df <- data.frame(Columna = names(valores_faltantes), Valores_Faltantes = valores_faltantes)
+
+ggplot(valores_faltantes_df, aes(x = Columna, y = valores_faltantes)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  labs(title = "Proporción de Valores Faltantes por Variable", x = "Variable", y = "Valores Faltantes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rota las etiquetas del eje x
+```
+
+Podemos ver como hay variables con un gran número de valores faltantes, en especial, los contaminantes atmosféricos (`N0`, `N02`, `S02`,...) y la información meteorológica (`Precipitacion`, `Radiacion`,...). Esto es debido a que cada estación dispone de unos sensores distintos de medición de estos fenómenos. Además, el ruido también dispone de muchos valores faltantes, ya que depende de lo tranquila que sea cada estación.
+
+Por otra parte, vemos en la gráfica \ref{fig:fig1} que los contaminantes atmosféricos y el ruido son los que proporcionalmente tienen más valores faltantes.
+
+Por tanto, para poder realizar un mejor análisis vamos a agrupar nuestro dataframe por `Estacion`:  
+```{r}
+grupos <- rvvcca_d_horarios_2016_2020 %>% group_by(Estacion)
+
+lista_dataframes <- split(grupos, f = grupos$Estacion)
+
+nombres_dataframes <- unique(rvvcca_d_horarios_2016_2020$Estacion)
+lista_dataframes <- setNames(lista_dataframes, nombres_dataframes)
+```
+
+Limpiamos las columnas vacías de cada dataframe:
+```{r}
+for (estacion in nombres_dataframes) {
+  lista_dataframes[[estacion]] <- lista_dataframes[[estacion]] %>%
+    select_if(~!all(is.na(.)))
+}
+```
+
+Convertimos la lista de dataframes en dataframes independientes:
+```{r}
+list2env(lista_dataframes, envir = .GlobalEnv)
+```
+
+Ahora, veamos que parámetros se han medido en cada estación:
+```{r}
+# Crear una lista con los nombres de los parámetros a observar
+parametros <- names(`Puerto Valencia`)
+
+# Crear un dataframe vacío con las zonas como filas y los parámetros como columnas
+tabla_zonas <- data.frame(Zona = character(0), stringsAsFactors = FALSE)
+
+# Iterar sobre los dataframes y extraer los nombres de las columnas
+for (zona in 1:length(lista_dataframes)) {
+  # Crear una fila con el nombre de la zona
+  fila_zona <- data.frame(Zona = names(lista_dataframes)[zona], stringsAsFactors = FALSE)
+  
+  # Iterar sobre los parámetros y agregar TRUE o FALSE según si existen en la zona
+  for (parametro in parametros) {
+    fila_zona[[parametro]] <- parametro %in% colnames(lista_dataframes[[zona]])
+  }
+  
+  # Unir la fila de la zona al dataframe
+  tabla_zonas <- rbind(tabla_zonas, fila_zona)
+}
+```
+
+
+
+
+# Visualización
 
 
 # Conclusiones
 
-
-
-# Códigos de ejemplo para visualizar en el pdf por si ayudan
-
-\startlandscape
-
-```{r, mdpinames, echo=FALSE, results='asis'}
-mdpi_journals <- "acoustics, actuators, addictions, admsci, adolescents, aerobiology, aerospace, agriculture, agriengineering, agrochemicals, agronomy, ai, air, algorithms, allergies, alloys, analytica, analytics, anatomia, animals, antibiotics, antibodies, antioxidants, applbiosci, appliedchem, appliedmath, applmech, applmicrobiol, applnano, applsci, aquacj, architecture, arm, arthropoda, arts, asc, asi, astronomy, atmosphere, atoms, audiolres, automation, axioms, bacteria, batteries, bdcc, behavsci, beverages, biochem, bioengineering, biologics, biology, biomass, biomechanics, biomed, biomedicines, biomedinformatics, biomimetics, biomolecules, biophysica, biosensors, biotech, birds, bloods, blsf, brainsci, breath, buildings, businesses, cancers, carbon, cardiogenetics, catalysts, cells, ceramics, challenges, chemengineering, chemistry, chemosensors, chemproc, children, chips, cimb, civileng, cleantechnol, climate, clinpract, clockssleep, cmd, coasts, coatings, colloids, colorants, commodities, compounds, computation, computers, condensedmatter, conservation, constrmater, cosmetics, covid, crops, cryptography, crystals, csmf, ctn, curroncol, cyber, dairy, data, ddc, dentistry, dermato, dermatopathology, designs, devices, diabetology, diagnostics, dietetics, digital, disabilities, diseases, diversity, dna, drones, dynamics, earth, ebj, ecologies, econometrics, economies, education, ejihpe, electricity, electrochem, electronicmat, electronics, encyclopedia, endocrines, energies, eng, engproc, entomology, entropy, environments, environsciproc, epidemiologia, epigenomes, est, fermentation, fibers, fintech, fire, fishes, fluids, foods, forecasting, forensicsci, forests, foundations, fractalfract, fuels, future, futureinternet, futurepharmacol, futurephys, futuretransp, galaxies, games, gases, gastroent, gastrointestdisord, gels, genealogy, genes, geographies, geohazards, geomatics, geosciences, geotechnics, geriatrics, grasses, gucdd, hazardousmatters, healthcare, hearts, hemato, hematolrep, heritage, higheredu, highthroughput, histories, horticulturae, hospitals, humanities, humans, hydrobiology, hydrogen, hydrology, hygiene, idr, ijerph, ijfs, ijgi, ijms, ijns, ijpb, ijtm, ijtpp, ime, immuno, informatics, information, infrastructures, inorganics, insects, instruments, inventions, iot, j, jal, jcdd, jcm, jcp, jcs, jcto, jdb, jeta, jfb, jfmk, jimaging, jintelligence, jlpea, jmmp, jmp, jmse, jne, jnt, jof"
-
-knitr::kable(rticles::string_to_table(mdpi_journals, 8),
-             col.names = NULL,
-             format = "latex",
-             booktabs = TRUE, 
-             caption = "MDPI journal names.",
-             longtable = TRUE)
-
-```
-
-\finishlandscape
-
-Aquí tenemos la gráfica \ref{fig:fig1} y aquí tenemos la tabla
-\ref{tab:tab1}.
-
-```{r fig1, echo=FALSE, fig.width=3, fig.cap="A figure added with a code chunk.\\label{fig:fig1}"}
-x = rnorm(10)
-y = rnorm(10)
-plot(x, y)
-```
-
-When making tables using `kable`, it is suggested to use the
-`format="latex"` and `tabl.envir="table"` arguments to ensure table
-numbering and compatibility with the mdpi document class.
-
-```{r tab1, echo=FALSE}
-knitr::kable(mtcars[1:5, 1:3], format = "latex", 
-             booktabs = TRUE, 
-             caption = "This is a table caption. Tables should be placed in the 
-             main text near to the first time they are~cited.", 
-             align = 'ccc', centering = FALSE,
-             table.envir = "table", position = "H")
-```
-
-Texto de latex:
-
-```{=tex}
-\begin{equation}
-a = 1,
-\end{equation}
-```
-```{comment}
-Esto no aparece en el pdf
-```
-
-Ejemplo de teorema:
-
-::: {.Theorem latex="true"}
-Example text of a theorem
-:::
-
-Texto
