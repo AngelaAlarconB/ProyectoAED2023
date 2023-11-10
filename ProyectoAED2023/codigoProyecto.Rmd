@@ -2,18 +2,35 @@
 title: "Documento de cambios"
 author: "Ángela Alarcón Ballester, Lucía Ponce Salmerón y Carlos Sánchez Polo"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
-Cargamos librerías:
+# Introducción
+
+En este proyecto analizaremos y trataremos los datos obtenidos de los
+registros de la calidad del aire por horas en zonas de Valencia. Vamos a
+realizar una exploración inicial de los datos y responderemos las
+preguntas que se deriven de ellos.
+
+# Importación y acondicionamiento de los datos
+
+Cargamos la librerías que necesitaremos a lo largo del proyecto:
 ```{r}
-library(readr)
-library(dplyr)
+library(readr) # Entrada de datos
+library(dplyr) # Manipulación de datos
+library(ggplot2) # Para las gráficas
 ```
 
-Cargamos y visualizamos nuestros datos:
+Cargamos y visualizamos los datos:
 ```{r}
-rvvcca_d_horarios_2016_2020 <- read_delim("ProyectoAED2023_files/data/rvvcca_d_horarios_2016-2020.csv", delim = ";", escape_double = FALSE, col_types = cols(Fecha = col_date(format = "%Y-%m-%d"), `Fecha creacion` = col_date(format = "%Y-%m-%d"), ), trim_ws = TRUE)
+rvvcca_d_horarios_2016_2020 <- read_delim("ProyectoAED2023_files/data/rvvcca_d_horarios_2016-2020.csv",
+  delim = ";", escape_double = FALSE, 
+  #Las columnas Fecha y Fecha creación las definimos como fechas en formato "YYYY-MM-DD".         
+  col_types = cols(Fecha = col_date(format = "%Y-%m-%d"), 
+  `Fecha creacion` = col_date(format = "%Y-%m-%d"), ), trim_ws = TRUE) 
+
 head(rvvcca_d_horarios_2016_2020)   
 ```
 
@@ -28,24 +45,48 @@ rvvcca_d_horarios_2016_2020$Hora <- format(rvvcca_d_horarios_2016_2020$Hora, for
 unique(rvvcca_d_horarios_2016_2020$Hora)
 ```
 
-Visualizamos nuestros datos de nuevo:
-```{r}
-head(rvvcca_d_horarios_2016_2020)
-```
-
 Ordenamos por fecha:
 ```{r}
 indices_orden <- order(rvvcca_d_horarios_2016_2020$Fecha)
 rvvcca_d_horarios_2016_2020 <- rvvcca_d_horarios_2016_2020[indices_orden, ]
 ```
                         
-Comprobamos que la columna `Fecha baja` está vacía y la eliminamos:                            
+Comprobamos que la columna `Fecha baja` está vacía, por tanto, no nos aporta ninguna información y la eliminamos:                            
 ```{r}
 unique(rvvcca_d_horarios_2016_2020$`Fecha baja`)
 rvvcca_d_horarios_2016_2020$`Fecha baja` <- NULL
 ```
 
-Ahora agrupamos nuestro dataframe por `Estacion` y creamos una lista que contenga un dataframe para cada estación y cuyo nombre sea la estación en cuestión:  
+Por último, visualizamos el estado actual de nuestros datos:
+```{r}
+head(rvvcca_d_horarios_2016_2020)
+tail(rvvcca_d_horarios_2016_2020)
+```
+
+
+# Valores faltantes
+
+El estudio de los valores faltantes es esencial para garantizar que los análisis de datos sean sólidos y confiables. Como en la tabla previa hemos identificado valores faltantes en los datos, en este apartado procederemos a analizarlos. Primero realizamos un resumen de la cantidad de valores faltantes en cada columna:
+```{r}
+valores_faltantes <- sapply(rvvcca_d_horarios_2016_2020, function(x) sum(is.na(x)))
+valores_faltantes
+```
+
+Creamos un gráfico de barras para visualizar mejor la proporción:
+```{r fig1,fig.cap="Proporciones de valores faltantes.\\label{fig:fig1}"}
+valores_faltantes_df <- data.frame(Columna = names(valores_faltantes), Valores_Faltantes = valores_faltantes)
+
+ggplot(valores_faltantes_df, aes(x = Columna, y = valores_faltantes)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  labs(title = "Proporción de Valores Faltantes por Variable", x = "Variable", y = "Valores Faltantes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rota las etiquetas del eje x
+```
+
+Podemos ver como hay variables con un gran número de valores faltantes, en especial, los contaminantes atmosféricos (`N0`, `N02`, `S02`,...) y la información meteorológica (`Precipitacion`, `Radiacion`,...). Esto es debido a que cada estación dispone de unos sensores distintos de medición de estos fenómenos. Además, el ruido también dispone de muchos valores faltantes, ya que depende de lo tranquila que sea cada estación.
+
+Por otra parte, vemos en la gráfica \ref{fig:fig1} que los contaminantes atmosféricos y el ruido son los que proporcionalmente tienen más valores faltantes.
+
+Por tanto, para poder realizar un mejor análisis vamos a agrupar nuestro dataframe por `Estacion`:  
 ```{r}
 grupos <- rvvcca_d_horarios_2016_2020 %>% group_by(Estacion)
 
@@ -68,6 +109,7 @@ Convertimos la lista de dataframes en dataframes independientes:
 list2env(lista_dataframes, envir = .GlobalEnv)
 ```
 
+Ahora, veamos que parámetros se han medido en cada estación:
 ```{r}
 # Crear una lista con los nombres de los parámetros a observar
 parametros <- names(`Puerto Valencia`)
@@ -88,8 +130,10 @@ for (zona in 1:length(lista_dataframes)) {
   # Unir la fila de la zona al dataframe
   tabla_zonas <- rbind(tabla_zonas, fila_zona)
 }
-
 ```
 
 
+# Visualización
 
+
+# Conclusiones
