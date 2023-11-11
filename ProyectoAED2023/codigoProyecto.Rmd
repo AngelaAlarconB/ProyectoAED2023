@@ -63,9 +63,9 @@ Observamos que contamos con las siguientes variables:
 
 * Información general (Id, Fecha, Día de la semana, Día del mes, Hora, Fecha de creación). Son de tipo double, factor y fecha.
 
-* Contaminantes Atmosféricos (PM1, PM2.5, PM10, NO, NO2, NOx, O3, SO2, CO, NH3, C7H8, C6H6, C8H10) y Ruido. Todos son de tipo double.
+* Contaminantes atmosféricos (PM1, PM2.5, PM10, NO, NO2, NOx, O3, SO2, CO, NH3, C7H8, C6H6, C8H10) y Ruido. Todos son de tipo double.
 
-* Información Meteorológica (Velocidad del viento, Dirección del viento, Temperatura, Humedad relativa, Presión, Radiación, Precipitación, Velocidad máxima del viento). Todos son de tipo double.
+* Información meteorológica (Velocidad del viento, Dirección del viento, Temperatura, Humedad relativa, Presión, Radiación, Precipitación, Velocidad máxima del viento). Todos son de tipo double.
 
 * Estacion (Avda. Francia, Bulevar Sur, Molino del Sol, Pista Silla, Politécnico, Viveros, Centro, Consellería Meteo, Nazaret Meteo, Puerto València). Es de tipo factor.
 
@@ -73,7 +73,7 @@ Observamos que contamos con las siguientes variables:
 
 ## Valores faltantes
 
-El estudio de los valores faltantes es esencial para garantizar que los análisis de datos sean sólidos y confiables. Como en la tabla previa hemos identificado valores faltantes en los datos, en este apartado procederemos a analizarlos. Primero realizamos un resumen de la cantidad de valores faltantes en cada columna:
+El estudio de los valores faltantes es esencial para garantizar que los análisis de datos sean sólidos y confiables. Como en el resultado previo hemos identificado valores faltantes, en este apartado procederemos a analizarlos. Primero, realizamos un resumen de la cantidad de valores faltantes en cada columna:
 ```{r}
 valores_faltantes <- sapply(rvvcca_d_horarios_2016_2020, function(x) sum(is.na(x)))
 valores_faltantes
@@ -89,7 +89,7 @@ ggplot(valores_faltantes_df, aes(x = Columna, y = valores_faltantes)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rota las etiquetas del eje x
 ```
 
-Podemos ver como hay variables con un gran número de valores faltantes, en especial, los contaminantes atmosféricos (`N0`, `N02`, `S02`,...) y la información meteorológica (`Precipitacion`, `Radiacion`,...). Esto es debido a que cada estación dispone de unos sensores distintos de medición de estos fenómenos. Además, el ruido también dispone de muchos valores faltantes, ya que depende de lo tranquila que sea cada estación.
+Podemos ver como hay variables con un gran número de valores faltantes, en especial, en los contaminantes atmosféricos y la información meteorológica. Esto es debido a que cada estación dispone de unos sensores distintos de medición de estos fenómenos. Además, el ruido también dispone de muchos valores faltantes, ya que depende de lo tranquila que sea cada estación.
 
 Por otra parte, vemos en la gráfica \ref{fig:fig1} que los contaminantes atmosféricos y el ruido son los que proporcionalmente tienen más valores faltantes.
 
