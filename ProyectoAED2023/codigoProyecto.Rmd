@@ -18,17 +18,28 @@ Cargamos la librerías que necesitaremos a lo largo del proyecto:
 library(readr) # Entrada de datos
 library(dplyr) # Manipulación de datos
 library(ggplot2) # Para las gráficas
+library(pheatmap)
+library(purrr)
+library(gridExtra)
 ```
 
 Cargamos y visualizamos los datos:
 ```{r}
-rvvcca_d_horarios_2016_2020 <- read_delim("ProyectoAED2023_files/data/rvvcca_d_horarios_2016-2020.csv",
+rvvcca_d_horarios_2016_2020 <- 
+  read_delim("ProyectoAED2023_files/data/rvvcca_d_horarios_2016-2020.csv",
   delim = ";", escape_double = FALSE, 
   #Las columnas Fecha y Fecha creación las definimos como fechas en formato "YYYY-MM-DD".         
   col_types = cols(Fecha = col_date(format = "%Y-%m-%d"), 
   `Fecha creacion` = col_date(format = "%Y-%m-%d"), ), trim_ws = TRUE) 
+```
 
-head(rvvcca_d_horarios_2016_2020)   
+```{r}
+head(rvvcca_d_horarios_2016_2020)
+```
+
+Convertimos la columna `Estacion` en factor:
+```{r}
+rvvcca_d_horarios_2016_2020$Estacion <- as.factor(rvvcca_d_horarios_2016_2020$Estacion)
 ```
 
 Nos damos cuenta de que la columna `Hora` está en un formato complejo de manejar:
@@ -38,7 +49,8 @@ unique(rvvcca_d_horarios_2016_2020$Hora)
 
 Cambiamos el formato de la columna `Hora` a uno más manejable:
 ```{r}
-rvvcca_d_horarios_2016_2020$Hora <- format(rvvcca_d_horarios_2016_2020$Hora, format="%H:%M:%S")
+rvvcca_d_horarios_2016_2020$Hora <- format(rvvcca_d_horarios_2016_2020$Hora, 
+                                           format="%H:%M:%S")
 unique(rvvcca_d_horarios_2016_2020$Hora)
 ```
 
@@ -67,7 +79,7 @@ Observamos que contamos con las siguientes variables:
 
 * Información meteorológica (Velocidad del viento, Dirección del viento, Temperatura, Humedad relativa, Presión, Radiación, Precipitación, Velocidad máxima del viento). Todos son de tipo double.
 
-* Estacion (Avda. Francia, Bulevar Sur, Molino del Sol, Pista Silla, Politécnico, Viveros, Centro, Consellería Meteo, Nazaret Meteo, Puerto València). Es de tipo factor.
+* Estacion (Avda. Francia, Bulevard Sur, Molino del Sol, Pista Silla, Politécnico, Viveros, Centro, Consellería Meteo, Nazaret Meteo, Puerto València). Es de tipo factor.
 
 
 
@@ -81,11 +93,13 @@ valores_faltantes
 
 Creamos un gráfico de barras para visualizar mejor la proporción:
 ```{r fig1,fig.cap="Proporciones de valores faltantes.\\label{fig:fig1}"}
-valores_faltantes_df <- data.frame(Columna = names(valores_faltantes), Valores_Faltantes = valores_faltantes)
+valores_faltantes_df <- data.frame(Columna = names(valores_faltantes), 
+                                   Valores_Faltantes = valores_faltantes)
 
 ggplot(valores_faltantes_df, aes(x = Columna, y = valores_faltantes)) +
   geom_bar(stat = "identity", fill = "lightblue") +
-  labs(title = "Proporción de Valores Faltantes por Variable", x = "Variable", y = "Valores Faltantes") +
+  labs(title = "Proporción de Valores Faltantes por Variable", x = "Variable", 
+       y = "Valores Faltantes") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rota las etiquetas del eje x
 ```
 
@@ -137,6 +151,25 @@ for (zona in 1:length(lista_dataframes)) {
   # Unir la fila de la zona al dataframe
   tabla_zonas <- rbind(tabla_zonas, fila_zona)
 }
+
+rownames(tabla_zonas) <-tabla_zonas$Zona
+tabla_zonas <- subset(tabla_zonas, select = -c(Zona,Id,Fecha,
+        `Dia de la semana`,`Dia del mes`,Hora,Estacion,`Fecha creacion`))
+tabla_numeric <- as.data.frame(sapply(tabla_zonas, as.numeric))
+```
+
+```{r}
+require(pheatmap)
+```
+
+
+```{r}
+# Crea el heatmap con colores azul y amarillo
+pheatmap(tabla_numeric, color=hcl.colors(2,palette = "BluYl"), 
+         labels_row =rownames(tabla_zonas),cluster_rows = F, 
+         cluster_cols = F, legend_breaks = c(0,0.25,0.75, 1), 
+         legend_labels = c("","No se mide", "Sí se mide",""), 
+         border_color = "black")
 ```
 
 
@@ -148,6 +181,134 @@ for (zona in 1:length(lista_dataframes)) {
 
 # Análisis de outliers 
 
+
+A continuación, exploraremos la calidad del aire mediante boxplots que representan las concentraciones de dos sustancias fundamentales: dióxido de nitrógeno (NO2) y ozono (O3). Cada gráfico proporciona una visión detallada de la distribución de estas sustancias en las distintas estaciones de la red de vigilancia atmosférica de la ciudad de València.  
+
+
+```{r}
+generate_boxplot <- function(data, title) {
+  boxplot(data, main = title,col = "lightpink", border = "darkblue")
+}
+
+par(mfrow = c(2, 4), mar = c(4, 4, 2, 1),cex.main = 0.8)
+
+for (nombre_df in nombres_dataframes) {
+  df <- get(nombre_df)
+  
+  if ("NO2" %in% names(df) && length(df$NO2) > 0) {
+    generate_boxplot(df$NO2, paste("Outliers NO2", nombre_df, sep = " "))
+  } else {
+    cat("No se encontró la columna 'NO2' en", nombre_df, "\n")
+  }
+}
+```
+Observamos una notable presencia de outliers en la variable `NO2` en todas las estaciones, destacando en la parte superior de los boxplots. Estos boxplots son estrechos, lo que sugiere que la mayor parte de los datos se concentra en un rango reducido de concentraciones de dióxido de nitrógeno. Sin embargo, la presencia de numerosos outliers en la parte superior indica que a menudo se generan concentraciones inusualmente altas de esta sustancia en el aire.
+
+```{r}
+par(mfrow = c(2, 4), mar = c(4, 4, 2, 1),cex.main = 0.8)
+
+for (nombre_df in nombres_dataframes) {
+  df <- get(nombre_df)
+  
+  if ("O3" %in% names(df) && length(df$O3) > 0) {
+    generate_boxplot(df$O3, paste("Outliers O3", nombre_df, sep = " "))
+  } else {
+    cat("No se encontró la columna 'O3' en", nombre_df, "\n")
+  }
+}
+```
+En contraste, la presencia de outliers en la variable de ozono es menos pronunciada. Aunque en las estaciones de Viveros y Consellería Meteo se observa una mayor proporción de outliers, en general, los valores presentan una distribución más uniforme. Los boxplots son más anchos, indicando una dispersión más amplia de las concentraciones de ozono.    
+
+También hemos considerado oportuno implementar funciones específicas para la identificación de outliers utilizando distintos métodos estadísticos, como la regla de 3 sigma, el identificador Hampel y la regla de percentiles. Este es otro modo de resaltar valores que podrían considerarse atípicos y podemos comparar con los resultados obtenidos mediante el método boxplot.    
+
+
+Función para la regla de 3 sigma:
+
+```{r}
+reglasigma <- function(x) {
+  media <- mean(x, na.rm = TRUE)
+  desviacion <- sd(x, na.rm = TRUE)
+  umbral_superior <- media + 3 * desviacion
+  umbral_inferior <- media - 3 * desviacion
+  outliers <- x[x > umbral_superior | x < umbral_inferior]
+  return(outliers)
+}
+```
+
+Función para el identificador Hampel:
+
+```{r}
+reglahampel <- function(x) {
+  mediana <- median(x, na.rm = TRUE)
+  mad <- mad(x, na.rm = TRUE)
+  umbral_superior <- mediana + 3 * mad
+  umbral_inferior <- mediana - 3 * mad
+  outliers <- x[x > umbral_superior | x < umbral_inferior]
+  return(outliers)
+}
+``` 
+
+Función para la regla del boxplot:
+
+```{r}
+reglaboxplot <- function(x) {
+  cuartil_75 <- quantile(x, 0.75, na.rm = TRUE)
+  cuartil_25 <- quantile(x, 0.25, na.rm = TRUE)
+  iqr <- cuartil_75 - cuartil_25
+  umbral_superior <- cuartil_75 + 1.5 * iqr
+  umbral_inferior <- cuartil_25 - 1.5 * iqr
+  outliers <- x[x > umbral_superior | x < umbral_inferior]
+  return(outliers)
+}
+```
+
+Función para la regla de percentiles:  
+
+```{r}
+reglapercentil <- function(x) {
+  percentil_5 <- quantile(x, 0.05, na.rm = TRUE)
+  percentil_95 <- quantile(x, 0.95, na.rm = TRUE)
+  outliers <- x[x < percentil_5 | x > percentil_95]
+  return(outliers)
+}
+```
+
+
+```{r}
+detectar_outliers <- function(x) {
+  sol <- list(
+    r_sigma = data.frame(Variable = colnames(x), Metodo = "Regla 3 sigma", 
+              Outliers = sapply(x, function(col) length(reglasigma(col)))),
+    r_hampel = data.frame(Variable = colnames(x), Metodo = "Identificador Hampel", 
+               Outliers = sapply(x, function(col) length(reglahampel(col)))),
+    r_boxplot = data.frame(Variable = colnames(x), Metodo = "Regla Boxplot", 
+                Outliers = sapply(x, function(col) length(reglaboxplot(col)))),
+    r_percentiles = data.frame(Variable = colnames(x), Metodo = "Regla Percentiles", 
+                    Outliers = sapply(x, function(col) length(reglapercentil(col))))
+  )
+
+  return(sol)
+}
+
+
+columnas_a_excluir <- c(1:6, ncol(df))
+col <- setdiff(names(df), names(df)[columnas_a_excluir])
+outliers_resultados <- detectar_outliers(Viveros[col])
+
+plots <- lapply(outliers_resultados, function(result) {
+  ggplot(result, aes(x = Variable, y = Outliers, fill = Variable)) +
+    geom_bar(stat = "identity") +
+    labs(title = unique(result$Metodo),
+         x = "Variable",
+         y = "Cantidad de Outliers") +
+    theme_minimal() + theme(axis.text.x = element_blank(), legend.position = "none")
+})
+
+grid.arrange(grobs = plots, ncol = 2)
+```
+
+
+La información resultante se presenta de manera clara y comparativa a través de gráficos de barras. Cada barra en estos gráficos representa la cantidad de outliers detectados para una variable específica, empleando diferentes métodos de detección. En este caso, lo hemos aplicado sobre los datos de la estación Viveros.
 
 
 
