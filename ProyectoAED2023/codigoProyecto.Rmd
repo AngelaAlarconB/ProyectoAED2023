@@ -88,7 +88,7 @@ Observamos que contamos con las siguientes variables:
 ## Valores faltantes
 
 El estudio de los valores faltantes es esencial para garantizar que los análisis de datos sean sólidos y confiables. Como en el resultado previo hemos identificado valores faltantes, en este apartado procederemos a analizarlos. Primero, realizamos un resumen de la cantidad de valores faltantes en cada columna:
-```{r}
+```{r tabla1}
 valores_faltantes <- sapply(rvvcca_d_horarios_2016_2020, function(x) sum(is.na(x)))
 kable(valores_faltantes)
 ```
@@ -100,7 +100,7 @@ valores_faltantes_df <- data.frame(Columna = names(valores_faltantes),
 
 ggplot(valores_faltantes_df, aes(x = Columna, y = valores_faltantes)) +
   geom_bar(stat = "identity", fill = "lightblue") +
-  labs(x="Variable", y = "Valores Faltantes") +
+  labs(x="Variable", y = "Valores faltantes") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))# Rota las etiquetas del eje x
 ```
 
@@ -159,12 +159,8 @@ tabla_zonas <- subset(tabla_zonas, select = -c(Zona,Id,Fecha,
 tabla_numeric <- as.data.frame(sapply(tabla_zonas, as.numeric))
 ```
 
-```{r}
-require(pheatmap)
-```
 
-
-```{r}
+```{r fig2,fig.cap="Variables medidas en cada estación.\\label{fig:fig2}", fig.width=6, fig.height=4}
 # Crea el heatmap con colores azul y amarillo
 pheatmap(tabla_numeric, color=hcl.colors(2,palette = "BluYl"), 
          labels_row =rownames(tabla_zonas),cluster_rows = F, 
@@ -175,12 +171,12 @@ pheatmap(tabla_numeric, color=hcl.colors(2,palette = "BluYl"),
 
 
 
-# Análisis de las variables (univariante / bivariante)
+# Análisis de las variables 
 
 ## Análisis univariante
 
 Hemos visto anteriormente que la información meteorológica sí se mide en todas las estaciones, lo cual es relevante para saber las condiciones meteorológicas de cada estación. Por tanto, vamos a calcular los estadísticos básicos de la información meteorológica más importante según la estación:
-```{r,warning=FALSE}
+```{r tabla2,warning=FALSE}
 calcular_estadisticas_estacion <- function(estacion_data, estacion_nombre) {
   estacion_data %>%
     summarise(across(c("Temperatura", "Presion", "Radiacion"), list(mean = mean, sd = sd, 
@@ -213,7 +209,7 @@ En cuanto a la presión atmosférica, se observa que todas las estaciones tienen
 A continuación, exploraremos la calidad del aire mediante boxplots que representan las concentraciones de dos sustancias fundamentales: dióxido de nitrógeno (NO2) y ozono (O3). Cada gráfico proporciona una visión detallada de la distribución de estas sustancias en las distintas estaciones de la red de vigilancia atmosférica de la ciudad de València.  
 
 
-```{r}
+```{r fig3, fig.cap="Diagramas de caja de NO2 en cada estación.\\label{fig:fig3}"}
 generate_boxplot <- function(data, title) {
   boxplot(data, main = title,col = "lightpink", border = "darkblue")
 }
@@ -232,7 +228,7 @@ for (nombre_df in nombres_dataframes) {
 ```
 Observamos una notable presencia de outliers en la variable `NO2` en todas las estaciones, destacando en la parte superior de los boxplots. Estos boxplots son estrechos, lo que sugiere que la mayor parte de los datos se concentra en un rango reducido de concentraciones de dióxido de nitrógeno. Sin embargo, la presencia de numerosos outliers en la parte superior indica que a menudo se generan concentraciones inusualmente altas de esta sustancia en el aire.
 
-```{r}
+```{r fig4, fig.cap="Diagramas de caja de O3 en cada estación. \\label{fig:fig4}"}
 par(mfrow = c(2, 4), mar = c(4, 4, 2, 1),cex.main = 0.8)
 
 for (nombre_df in nombres_dataframes) {
@@ -302,7 +298,7 @@ reglapercentil <- function(x) {
 ```
 
 
-```{r}
+```{r fig5, fig.cap="Gráficos de barras para detectar outliers.\\label{fig:fig5}"}
 detectar_outliers <- function(x) {
   sol <- list(
     r_sigma = data.frame(Variable = colnames(x), Metodo = "Regla 3 sigma", 
