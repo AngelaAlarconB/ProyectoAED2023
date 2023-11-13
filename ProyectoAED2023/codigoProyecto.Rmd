@@ -39,9 +39,10 @@ rvvcca_d_horarios_2016_2020 <-
 head(rvvcca_d_horarios_2016_2020)
 ```
 
-Convertimos la columna `Estacion` en factor:
+Convertimos la columna `Estacion` y `Dia de la semana` en factor:
 ```{r}
 rvvcca_d_horarios_2016_2020$Estacion <- as.factor(rvvcca_d_horarios_2016_2020$Estacion)
+rvvcca_d_horarios_2016_2020$`Dia de la semana` <- factor(rvvcca_d_horarios_2016_2020$`Dia de la semana`, levels = c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"))
 ```
 
 Nos damos cuenta de que la columna `Hora` está en un formato complejo de manejar:
@@ -154,9 +155,12 @@ for (zona in 1:length(lista_dataframes)) {
 }
 
 rownames(tabla_zonas) <-tabla_zonas$Zona
-tabla_zonas <- subset(tabla_zonas, select = -c(Zona,Id,Fecha,
-        `Dia de la semana`,`Dia del mes`,Hora,Estacion,`Fecha creacion`))
+colnames(tabla_zonas)[17] <- "V viento"
+colnames(tabla_zonas)[24] <- "V_máx viento"
+tabla_zonas <- subset(tabla_zonas, select = -c(Zona,Id,Fecha,`Dia de la semana`,`Dia del mes`,Hora,Estacion,`Fecha creacion`))
 tabla_numeric <- as.data.frame(sapply(tabla_zonas, as.numeric))
+
+
 ```
 
 
@@ -198,6 +202,110 @@ kable(resultados_totales)
 En cuanto a la presión atmosférica, se observa que todas las estaciones tienen una media cercana a 1004, con variabilidad baja representada por la desviación estándar y la amplitud intercuartílica (IQR). En cuanto a la radiación, se observa una variabilidad significativa en los valores, con Avda. Francia mostrando una media considerablemente más baja que otras estaciones. Por último, en temperatura, la estación Nazaret Meteo presenta valores más altos en comparación con las demás, evidenciando una mayor variabilidad en este parámetro. 
 
 
+----recolocar---------
+
+```{r}
+require("ggplot2")
+
+dias_semana <- unique(`Avda. Francia`$`Dia de la semana`)
+par(mfrow = c(5, 2))
+
+if (!dir.exists("./grafs")) {
+  dir.create("./grafs")
+}
+```
+
+```{r}
+library(dplyr)
+
+orden_dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
+
+df_media <- `Avda. Francia` %>%
+  group_by(`Dia de la semana`, Hora) %>%
+  summarise(
+    media_NO = mean(NO, na.rm = TRUE),
+    media_NO2 = mean(NO2, na.rm = TRUE),
+    media_NOx = mean(NOx, na.rm = TRUE),
+    media_O3 = mean(O3, na.rm = TRUE),
+    media_SO2 = mean(SO2, na.rm = TRUE),
+    media_CO = mean(CO, na.rm = TRUE)
+  )
+
+```
+```{r}
+require("ggplot2")
+dias_semana <- unique(`Avda. Francia`$`Dia de la semana`)
+par(mfrow = c(5, 2))
+
+if (!dir.exists("./grafs")) {
+  dir.create("./grafs")
+}
+orden_dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
+
+for (dia in orden_dias) {
+  df_media_dia <- df_media[df_media$`Dia de la semana` == dia, ]
+
+  if (nrow(df_media_dia) > 0) {
+    # Ajusta el título para manejar correctamente las tildes y la s del plural
+    titulo <- ifelse(dia == "Sabado", "Sábados", 
+                     ifelse(dia == "Domingo", "Domingos", 
+                            ifelse(dia == "Miercoles", "Miércoles", dia)))
+
+    # Crea la gráfica con puntos
+    p <- ggplot(df_media_dia, aes(x = Hora)) +
+      geom_point(aes(y = media_NO, color = "NO"), size = 3) +
+      geom_point(aes(y = media_NO2, color = "NO2"), size = 3) +
+      geom_point(aes(y = media_NOx, color = "NOx"), size = 3) +
+      geom_point(aes(y = media_O3, color = "O3"), size = 3) +
+      geom_point(aes(y = media_SO2, color = "SO2"), size = 3) +
+      geom_point(aes(y = media_CO, color = "CO"), size = 3) +
+      ggtitle(paste("Evolución de las concentraciones los", titulo)) +
+      xlab("Hora") +
+      ylab("Concentración") +
+      scale_color_manual(values = c("NO" = "red", "NO2" = "blue", "NOx" = "green", "O3" = "purple", "SO2" = "orange", "CO" = "brown")) +
+      labs(color = "Código") +
+      coord_cartesian(ylim = c(0, 100)) +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))  # Rotar las etiquetas del eje x
+
+
+    # Muestra la gráfica
+    print(p)
+    ggsave(paste("./grafs/grafico_", dia, ".png"), plot = p, device = "png", width = 8, height = 6, units ="in")
+  }
+}
+```
+
+```{r}
+require("dplyr")
+
+`Avda. Francia`$gases_total <- rowSums(`Avda. Francia`[, c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO')], na.rm = TRUE)
+
+# Visualiza el DataFrame resultante
+print(`Avda. Francia`)
+
+```
+
+```{r}
+media_diaria <- `Avda. Francia` %>%
+  group_by(`Dia de la semana`, Hora) %>%
+  summarise(media_gases_total = mean(gases_total, na.rm = TRUE))
+
+# Crea la gráfica de las medias diarias de 'gases_total' por día de la semana con puntos y dispersión horizontal
+p3<-ggplot(media_diaria, aes(x = Hora, y = media_gases_total, color = `Dia de la semana`, group = `Dia de la semana`)) +
+  geom_line(size = 1) +
+  ggtitle("Medias diarias de Gases total por día de la semana") +
+  xlab("Hora") +
+  ylab("Media de gases totales") +
+  scale_color_manual(values = c("Lunes" = "red", "Martes" = "blue", "Miercoles" = "green", "Jueves" = "purple", "Viernes" = "orange", "Sabado" = "brown", "Domingo" = "pink")) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+print(p3)
+ggsave("./grafs/medias_gases_total.png", p3, width = 10, height = 6, units = "in", dpi = 300)
+```
+
+
+
+----recolocar--------
 
 ## Análisis bivariante
 
