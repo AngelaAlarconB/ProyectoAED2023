@@ -9,12 +9,14 @@ output:
 
 # Introducción
 
-En este proyecto analizaremos y trataremos los datos por horas de calidad del aire de las estaciones de la red de vigilancia de la ciudad de Valencia. Vamos a realizar una exploración inicial de los datos y responderemos las preguntas que se deriven de ellos.
+En este proyecto analizaremos y trataremos los datos por horas de calidad del aire de las estaciones de la red de vigilancia de la ciudad de Valencia entre los años 2016 y 2020. El conjunto de datos que se utiliza a lo largo de este proyecto se ha obtenido a través del portal de datos abiertos del Ayuntamiento de Valencia ([https://valencia.opendatasoft.com/explore/embed/dataset/rvvcca_d_horarios_2016-2020/table/ link](https://valencia.opendatasoft.com/explore/embed/dataset/rvvcca_d_horarios_2016-2020/table/)).
+
+Comenzaremos realizando una exploración inicial de los datos y responderemos las preguntas que se deriven de ellos.
 
 ## Importación y acondicionamiento de los datos
 
 Cargamos la librerías que necesitaremos a lo largo del proyecto:
-```{r, message=FALSE,warning=FALSE}
+```{r message=FALSE, warning=FALSE}
 library(readr) # Entrada de datos
 library(dplyr) # Manipulación de datos
 library(tidyr) # Manipulación de datos
@@ -23,6 +25,7 @@ library(gridExtra) # Gráficas
 library(pheatmap) # Para realizar operaciones
 library(purrr) # Mapas de calor
 library(knitr) # Tablas
+library(GGally)
 ``` 
 
 Cargamos y visualizamos los datos:
@@ -30,10 +33,10 @@ Cargamos y visualizamos los datos:
 rvvcca_d_horarios_2016_2020 <- 
   read_delim("ProyectoAED2023_files/data/rvvcca_d_horarios_2016-2020.csv",
   delim = ";", escape_double = FALSE, 
-  #Las columnas Fecha y Fecha creación las definimos como fechas en formato "YYYY-MM-DD".         
   col_types = cols(Fecha = col_date(format = "%Y-%m-%d"), 
   `Fecha creacion` = col_date(format = "%Y-%m-%d"), ), trim_ws = TRUE) 
 ```
+Como se observa, las columnas `Fecha` y `Fecha creación` las definimos como fechas en formato "YYYY-MM-DD".         
 
 ```{r results='hide'}
 head(rvvcca_d_horarios_2016_2020)
@@ -63,10 +66,9 @@ indices_orden <- order(rvvcca_d_horarios_2016_2020$Fecha)
 rvvcca_d_horarios_2016_2020 <- rvvcca_d_horarios_2016_2020[indices_orden, ]
 ```
                         
-Comprobamos que la columna `Fecha baja` está vacía, por tanto, no nos aporta ninguna información y la eliminamos:                            
+Eliminamos todas las columnas vacías ya que no nos aportan ninguna información. En este caso, solo se eliminará la columna `Fecha baja`.
 ```{r results='hide'}
-unique(rvvcca_d_horarios_2016_2020$`Fecha baja`)
-rvvcca_d_horarios_2016_2020$`Fecha baja` <- NULL
+rvvcca_d_horarios_2016_2020 <- rvvcca_d_horarios_2016_2020[, colSums(is.na(rvvcca_d_horarios_2016_2020)) < nrow(rvvcca_d_horarios_2016_2020)]
 ```
 
 Utilizamos la función `glimpse` para obtener una visión general de los datos:
@@ -74,23 +76,24 @@ Utilizamos la función `glimpse` para obtener una visión general de los datos:
 glimpse(rvvcca_d_horarios_2016_2020)
 ```
 
-Observamos que contamos con las siguientes variables:
+Observamos que contamos con las siguientes variables:    
 
-* Información general (Id, Fecha, Día de la semana, Día del mes, Hora, Fecha de creación). Son de tipo double, factor y fecha.
+* Información general (Id, Fecha, Día de la semana, Día del mes, Hora, Fecha de creación). Son de tipo double, factor, fecha y caracter.    
 
-* Contaminantes atmosféricos (PM1, PM2.5, PM10, NO, NO2, NOx, O3, SO2, CO, NH3, C7H8, C6H6, C8H10) y Ruido. Todos son de tipo double.
+* Contaminantes atmosféricos (PM1, PM2.5, PM10, NO, NO2, NOx, O3, SO2, CO, NH3, C7H8, C6H6, C8H10) y Ruido. Estas variables miden la concentración de partículas en suspensión de diferentes tamaños, la concentración de óxidos de nitrógeno, ozono y azufre, entre otros. Todos son de tipo double.    
 
-* Información meteorológica (Velocidad del viento, Dirección del viento, Temperatura, Humedad relativa, Presión, Radiación, Precipitación, Velocidad máxima del viento). Todos son de tipo double.
+* Información meteorológica (Velocidad del viento, Dirección del viento, Temperatura, Humedad relativa, Presión, Radiación, Precipitación, Velocidad máxima del viento). Todos son de tipo double.   
 
-* Estacion (Avda. Francia, Bulevard Sur, Molino del Sol, Pista Silla, Politécnico, Viveros, Centro, Consellería Meteo, Nazaret Meteo, Puerto València). Es de tipo factor.
+* Estacion (Avda. Francia, Bulevard Sur, Molino del Sol, Pista Silla, Politécnico, Viveros, Centro, Consellería Meteo, Nazaret Meteo, Puerto València), la cual indica la ubicación de la estación de monitoreo. Es de tipo factor.    
 
 
 
 ## Valores faltantes
 
-El estudio de los valores faltantes es esencial para garantizar que los análisis de datos sean sólidos y confiables. Como en el resultado previo hemos identificado valores faltantes, en este apartado procederemos a analizarlos. Primero, realizamos un resumen de la cantidad de valores faltantes en cada columna:
-```{r tabla1}
+El estudio de los valores faltantes es esencial para garantizar que los análisis de datos sean sólidos y confiables. Al visualizar los datos inicialmente se han identificado valores faltantes, por lo que en este apartado procederemos a analizarlos. Primero, realizamos un resumen de la cantidad de valores faltantes en cada columna:
+```{r tabla1, eval=FALSE, include=FALSE}
 valores_faltantes <- sapply(rvvcca_d_horarios_2016_2020, function(x) sum(is.na(x)))
+porcentaje_de_valores_faltantes <- valores_faltantes/nrow(rvvcca_d_horarios_2016_2020)
 ```
 
 \begin{table}[ht]
@@ -117,7 +120,7 @@ valores_faltantes <- sapply(rvvcca_d_horarios_2016_2020, function(x) sum(is.na(x
 \label{tabla1}
 \end{table}
 
-Podemos ver en la Tabla \ref{tabla1} como hay variables con un gran número de valores faltantes, en especial, en los contaminantes atmosféricos y la información meteorológica. Esto es debido a que cada estación dispone de unos sensores distintos de medición de estos fenómenos. Además, el ruido también dispone de muchos valores faltantes, ya que depende de lo tranquila que sea cada estación.
+Podemos ver en la Tabla \ref{tabla1} como hay variables con un gran número de valores faltantes, en especial, en los contaminantes atmosféricos y la información meteorológica. Esto es debido a que cada estación dispone de unos sensores distintos de medición de estos fenómenos. Además, el ruido también dispone de muchos valores faltantes, ya que depende de lo tranquila que sea cada estación. Por ello, consideramos oportuno dividir nuestros datos en función de la estación meteorológica asociada, para poder hacer una mejor comparativa, ya que en cada una de ellas se han medido unos valores concretos.   
 
 Por tanto, para poder realizar un mejor análisis vamos a agrupar nuestro dataframe por `Estacion`:  
 ```{r}
@@ -126,7 +129,6 @@ grupos <- rvvcca_d_horarios_2016_2020 %>% group_by(Estacion)
 lista_dataframes <- split(grupos, f = grupos$Estacion)
 
 nombres_dataframes <- unique(rvvcca_d_horarios_2016_2020$Estacion)
-lista_dataframes <- setNames(lista_dataframes, nombres_dataframes)
 ```
 
 Limpiamos las columnas vacías de cada dataframe:
@@ -144,23 +146,18 @@ list2env(lista_dataframes, envir = .GlobalEnv)
 
 Ahora, veamos que parámetros se han medido en cada estación:
 ```{r}
-# Crear una lista con los nombres de los parámetros a observar
 parametros <- names(rvvcca_d_horarios_2016_2020)
 
-# Crear un dataframe vacío con las zonas como filas y los parámetros como columnas
+#Creamos dataframe vacío
 tabla_zonas <- data.frame(Zona = character(0), stringsAsFactors = FALSE)
 
-# Iterar sobre los dataframes y extraer los nombres de las columnas
 for (zona in 1:length(lista_dataframes)) {
-  # Crear una fila con el nombre de la zona
   fila_zona <- data.frame(Zona = names(lista_dataframes)[zona], stringsAsFactors = FALSE)
   
-  # Iterar sobre los parámetros y agregar TRUE o FALSE según si existen en la zona
   for (parametro in parametros) {
     fila_zona[[parametro]] <- parametro %in% colnames(lista_dataframes[[zona]])
   }
   
-  # Unir la fila de la zona al dataframe
   tabla_zonas <- rbind(tabla_zonas, fila_zona)
 }
 
@@ -181,36 +178,66 @@ pheatmap(tabla_numeric, color=hcl.colors(2,palette = "BluYl"),
          border_color = "black")
 ```
 
+Como la estación "Pista Silla" es la que menos columnas vacías tiene, es la que vamos a considerar para nuestro estudio. Veamos cuál es el porcentaje de valores faltantes en cada una de sus columnas, para ver qué variables pueden sernos de utilidad:
+
+```{r, include=FALSE}
+valores_faltantes <- sapply(`Pista Silla`, function(x) sum(is.na(x)))
+porcentaje_de_valores_faltantes <- valores_faltantes/nrow(`Pista Silla`)
+round(porcentaje_de_valores_faltantes,3)
+```
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{PM1} & 0.636 & \textbf{C8H10} & 0.097 \\ \hline
+\textbf{PM2.5} & 0.026 & \textbf{Temperatura} & 0.023 \\ \hline
+\textbf{PM10} & 0.026 & \textbf{Humedad relativa} & 0.045 \\ \hline
+\textbf{NO} & 0.026 & \textbf{Presion} & 0.016 \\ \hline
+\textbf{NO2} & 0.026 & \textbf{Radiacion} & 0.015 \\ \hline
+\textbf{NOx} & 0.026 & \textbf{Precipitacion} & 0.019 \\ \hline
+\textbf{O3} & 0.065 & \textbf{Velocidad maxima del viento} & 0.021 \\ \hline
+\textbf{SO2} & 0.070 & \textbf{CO} & 0.092  \\ \hline
+\end{tabular}
+\caption{Porcentaje de valores faltantes de cada variable para la estación "Pista Silla".}
+\label{tabla2}
+\end{table}
+
+En la Tabla \ref{tabla2} observamos que el porcentaje de datos faltantes no es significativo en ninguna de las variables, a excepción de `PM1`. Por ello, podemos considerar que esta variable no nos aportará información suficiente y podemos eliminarla de nuestro análisis.   
+
+Una vez que hemos visualizado y analizado los datos, podemos plantearnos ciertas preguntas. En nuestro caso, hemos considerado que, teniendo en cuenta las variables de las que disponemos, sería interesante realizar un estudio que analice la relación entre la calidad del aire y las horas de mayor cantidad de desplazamientos en automóvil, es decir, las horas de más tráfico en carreteras. ¿Se observará un aumento en la concentración de contaminantes atmosféricos en las horas puntas? ¿Dependerá esto de la estación del año en la que nos encontremos? ¿Y los fines de semana nos encontraremos ante un aumento o una disminución?
 
 
 # Análisis de las variables 
 
 ## Análisis univariante
 
-Hemos visto anteriormente que todos los contaminantes atmosféricos sí se miden en la estación Viveros. Por tanto, vamos a calcular los estadísticos básicos de los contaminantes atmosféricos para la estación Viveros:
+Como hemos mencionado, vamos a hacer un estudio de los contaminantes atmosféricos, por lo que únicamente consideraremos estos valores de ahora en adelante. Hemos visto anteriormente que todos los contaminantes atmosféricos sí se miden en la estación Pista Silla. Por tanto, vamos a calcular los estadísticos básicos de éstos:
 ```{r tabla2,warning=FALSE}
-resultados_totales <- Viveros %>%
-  summarise(across(c("NO", "NO2", "NOx", "O3", "SO2", "CO"), list(mean = mean, sd = sd, 
+resultados_totales <- `Pista Silla` %>%
+  summarise(across(c("NO", "NO2", "NOx", "O3", "SO2", "CO", "C6H6", "C7H8", "C8H10"), 
+                   list(mean = mean, sd = sd, 
     median = median, IQR = IQR), na.rm = TRUE)) %>%
   pivot_longer(cols = -Estacion, names_to = "variable", values_to = "valor") %>%
   separate(variable, into = c("Contaminante", "stat"), sep = "_") %>%
   pivot_wider(names_from = "stat", values_from = "valor") %>%
-  mutate(Estacion = "Viveros") %>%
+  mutate(Estacion = "Pista Silla") %>%
   select(Contaminante, mean, sd, median, IQR) %>%
   arrange(Contaminante) 
 
-kable(resultados_totales, caption="Estadísticos básicos de la estación Viveros.")
+kable(resultados_totales, caption="Estadísticos básicos de la estación Pista Silla.")
 ``` 
 
 La tabla de estadísticas descriptivas para los contaminantes del aire destaca diferencias notables entre ellos. Mientras el monóxido de carbono (CO) muestra niveles bajos y poca variabilidad, el dióxido de nitrógeno (NO) exhibe una variabilidad significativa con una media más alta. El dióxido de nitrógeno (NO2) presenta una distribución asimétrica, y el óxido de nitrógeno (NOx) muestra una amplia dispersión de datos. El ozono (O3) tiene una distribución relativamente simétrica, y el dióxido de azufre (SO2) muestra concentración cercana a la media con moderada variabilidad.
 
+----comentar variables nuevas y cambiar lo que hay-----
 
 ----recolocar---------
 
 ```{r}
 require("ggplot2")
 
-dias_semana <- unique(Viveros$`Dia de la semana`)
+dias_semana <- unique(`Pista Silla`$`Dia de la semana`)
 par(mfrow = c(5, 2))
 
 if (!dir.exists("./grafs")) {
@@ -223,7 +250,7 @@ library(dplyr)
 
 orden_dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
 
-df_media <- Viveros %>%
+df_media <- `Pista Silla` %>%
   group_by(`Dia de la semana`, Hora) %>%
   summarise(
     media_NO = mean(NO, na.rm = TRUE),
@@ -238,9 +265,11 @@ df_media <- Viveros %>%
   )
 
 ```
+
+
 ```{r}
 require("ggplot2")
-dias_semana <- unique(Viveros$`Dia de la semana`)
+dias_semana <- unique(`Pista Silla`$`Dia de la semana`)
 par(mfrow = c(5, 2))
 
 if (!dir.exists("./grafs")) {
@@ -257,28 +286,26 @@ for (dia in orden_dias) {
                      ifelse(dia == "Domingo", "Domingos", 
                             ifelse(dia == "Miercoles", "Miércoles", dia)))
 
-    # Crea la gráfica con puntos
     p <- ggplot(df_media_dia, aes(x = Hora)) +
-      geom_point(aes(y = media_NO, color = "NO"), size = 3) +
-      geom_point(aes(y = media_NO2, color = "NO2"), size = 3) +
-      geom_point(aes(y = media_NOx, color = "NOx"), size = 3) +
-      geom_point(aes(y = media_O3, color = "O3"), size = 3) +
-      geom_point(aes(y = media_SO2, color = "SO2"), size = 3) +
-      geom_point(aes(y = media_CO, color = "CO"), size = 3) +
-      geom_point(aes(y = media_C6H6, color = "C6H6"), size = 3) +
-      geom_point(aes(y = media_C7H8, color = "C7H8"), size = 3) +
-      geom_point(aes(y = media_C8H10, color = "C8H10"), size = 3) +
+      geom_point(aes(y = media_NO, color = "NO"), size = 2) +
+      geom_point(aes(y = media_NO2, color = "NO2"), size = 2) +
+      geom_point(aes(y = media_NOx, color = "NOx"), size = 2) +
+      geom_point(aes(y = media_O3, color = "O3"), size = 2) +
+      geom_point(aes(y = media_SO2, color = "SO2"), size = 2) +
+      geom_point(aes(y = media_CO, color = "CO"), size = 2) +
+      geom_point(aes(y = media_C6H6, color = "C6H6"), size = 2) +
+      geom_point(aes(y = media_C7H8, color = "C7H8"), size = 2) +
+      geom_point(aes(y = media_C8H10, color = "C8H10"), size = 2) +
       ggtitle(paste("Evolución de las concentraciones los", titulo)) +
       xlab("Hora") +
       ylab("Concentración") +
       scale_color_manual(values = c("NO" = "red", "NO2" = "blue", "NOx" = "green", "O3" = "purple", "SO2" = "orange", "CO" = "brown", "C6H6" = "pink", "C7H8" = "black", "C8H10" = "yellow")) +
       labs(color = "Código") +
-      coord_cartesian(ylim = c(0, 100)) +
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))  # Rotar las etiquetas del eje x
-
-
-    # Muestra la gráfica
+      coord_cartesian(ylim = c(0, 150)) +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+    
     print(p)
+    
     ggsave(paste("./grafs/grafico_", dia, ".png"), plot = p, device = "png", width = 8, height = 6, units ="in")
   }
 }
@@ -287,11 +314,11 @@ for (dia in orden_dias) {
 ```{r}
 require("dplyr")
 
-Viveros$gases_total <- rowSums(Viveros[, c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')], na.rm = TRUE)
+`Pista Silla`$gases_total <- rowSums(`Pista Silla`[, c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')], na.rm = TRUE)
 ```
 
-```{r}
-media_diaria <- Viveros %>%
+```{r warning=FALSE}
+media_diaria <- `Pista Silla` %>%
   group_by(`Dia de la semana`, Hora) %>%
   summarise(media_gases_total = mean(gases_total, na.rm = TRUE))
 
@@ -308,14 +335,16 @@ print(p3)
 ggsave("./grafs/medias_gases_total.png", p3, width = 10, height = 6, units = "in", dpi = 300)
 ```
 
-
-
 ----recolocar--------
+
 
 ## Análisis bivariante
 
 ```{r}
-#ggpairs(Viveros[, c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')], na.rm=TRUE)
+#vars_of_interest <- c('Dia de la semana', 'NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')
+#df_bivariante <- `Pista Silla`[, vars_of_interest]
+#media_por_dia <- aggregate(. ~ `Dia de la semana`, data = df_bivariante, mean, na.rm = TRUE)
+#ggpairs(media_por_dia[c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')])
 ```
 
 
