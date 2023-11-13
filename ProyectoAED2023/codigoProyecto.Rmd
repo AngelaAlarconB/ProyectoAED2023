@@ -35,7 +35,7 @@ rvvcca_d_horarios_2016_2020 <-
   `Fecha creacion` = col_date(format = "%Y-%m-%d"), ), trim_ws = TRUE) 
 ```
 
-```{r}
+```{r results='hide'}
 head(rvvcca_d_horarios_2016_2020)
 ```
 
@@ -46,12 +46,12 @@ rvvcca_d_horarios_2016_2020$`Dia de la semana` <- factor(rvvcca_d_horarios_2016_
 ```
 
 Nos damos cuenta de que la columna `Hora` está en un formato complejo de manejar:
-```{r}
+```{r results='hide'}
 unique(rvvcca_d_horarios_2016_2020$Hora)
 ```
 
 Cambiamos el formato de la columna `Hora` a uno más manejable:
-```{r}
+```{r results='hide'}
 rvvcca_d_horarios_2016_2020$Hora <- format(rvvcca_d_horarios_2016_2020$Hora, 
                                            format="%H:%M:%S")
 unique(rvvcca_d_horarios_2016_2020$Hora)
@@ -64,13 +64,13 @@ rvvcca_d_horarios_2016_2020 <- rvvcca_d_horarios_2016_2020[indices_orden, ]
 ```
                         
 Comprobamos que la columna `Fecha baja` está vacía, por tanto, no nos aporta ninguna información y la eliminamos:                            
-```{r}
+```{r results='hide'}
 unique(rvvcca_d_horarios_2016_2020$`Fecha baja`)
 rvvcca_d_horarios_2016_2020$`Fecha baja` <- NULL
 ```
 
 Utilizamos la función `glimpse` para obtener una visión general de los datos:
-```{r}
+```{r results='hide'}
 glimpse(rvvcca_d_horarios_2016_2020)
 ```
 
@@ -94,16 +94,6 @@ valores_faltantes <- sapply(rvvcca_d_horarios_2016_2020, function(x) sum(is.na(x
 kable(valores_faltantes)
 ```
 
-Creamos un gráfico de barras para visualizar mejor la proporción:
-```{r fig1,fig.cap="Proporciones de valores faltantes.\\label{fig:fig1}",fig.width=5,fig.height=4}
-valores_faltantes_df <- data.frame(Columna = names(valores_faltantes), 
-                                   Valores_Faltantes = valores_faltantes)
-
-ggplot(valores_faltantes_df, aes(x = Columna, y = valores_faltantes)) +
-  geom_bar(stat = "identity", fill = "lightblue") +
-  labs(x="Variable", y = "Valores faltantes") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))# Rota las etiquetas del eje x
-```
 
 Podemos ver como hay variables con un gran número de valores faltantes, en especial, en los contaminantes atmosféricos y la información meteorológica. Esto es debido a que cada estación dispone de unos sensores distintos de medición de estos fenómenos. Además, el ruido también dispone de muchos valores faltantes, ya que depende de lo tranquila que sea cada estación.
 
@@ -135,7 +125,7 @@ list2env(lista_dataframes, envir = .GlobalEnv)
 Ahora, veamos que parámetros se han medido en cada estación:
 ```{r}
 # Crear una lista con los nombres de los parámetros a observar
-parametros <- names(`Puerto Valencia`)
+parametros <- names(rvvcca_d_horarios_2016_2020)
 
 # Crear un dataframe vacío con las zonas como filas y los parámetros como columnas
 tabla_zonas <- data.frame(Zona = character(0), stringsAsFactors = FALSE)
@@ -156,7 +146,7 @@ for (zona in 1:length(lista_dataframes)) {
 
 rownames(tabla_zonas) <-tabla_zonas$Zona
 colnames(tabla_zonas)[17] <- "V viento"
-colnames(tabla_zonas)[24] <- "V_máx viento"
+colnames(tabla_zonas)[29] <- "V_máx viento"
 tabla_zonas <- subset(tabla_zonas, select = -c(Zona,Id,Fecha,`Dia de la semana`,`Dia del mes`,Hora,Estacion,`Fecha creacion`))
 tabla_numeric <- as.data.frame(sapply(tabla_zonas, as.numeric))
 
@@ -207,7 +197,7 @@ En cuanto a la presión atmosférica, se observa que todas las estaciones tienen
 ```{r}
 require("ggplot2")
 
-dias_semana <- unique(`Avda. Francia`$`Dia de la semana`)
+dias_semana <- unique(Viveros$`Dia de la semana`)
 par(mfrow = c(5, 2))
 
 if (!dir.exists("./grafs")) {
@@ -220,7 +210,7 @@ library(dplyr)
 
 orden_dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
 
-df_media <- `Avda. Francia` %>%
+df_media <- Viveros %>%
   group_by(`Dia de la semana`, Hora) %>%
   summarise(
     media_NO = mean(NO, na.rm = TRUE),
@@ -228,13 +218,16 @@ df_media <- `Avda. Francia` %>%
     media_NOx = mean(NOx, na.rm = TRUE),
     media_O3 = mean(O3, na.rm = TRUE),
     media_SO2 = mean(SO2, na.rm = TRUE),
-    media_CO = mean(CO, na.rm = TRUE)
+    media_CO = mean(CO, na.rm = TRUE),
+    media_C6H6 = mean(C6H6, na.rm = TRUE),
+    media_C7H8 = mean(C7H8, na.rm = TRUE),
+    media_C8H10 = mean(C8H10, na.rm = TRUE)
   )
 
 ```
 ```{r}
 require("ggplot2")
-dias_semana <- unique(`Avda. Francia`$`Dia de la semana`)
+dias_semana <- unique(Viveros$`Dia de la semana`)
 par(mfrow = c(5, 2))
 
 if (!dir.exists("./grafs")) {
@@ -259,10 +252,13 @@ for (dia in orden_dias) {
       geom_point(aes(y = media_O3, color = "O3"), size = 3) +
       geom_point(aes(y = media_SO2, color = "SO2"), size = 3) +
       geom_point(aes(y = media_CO, color = "CO"), size = 3) +
+      geom_point(aes(y = media_C6H6, color = "C6H6"), size = 3) +
+      geom_point(aes(y = media_C7H8, color = "C7H8"), size = 3) +
+      geom_point(aes(y = media_C8H10, color = "C8H10"), size = 3) +
       ggtitle(paste("Evolución de las concentraciones los", titulo)) +
       xlab("Hora") +
       ylab("Concentración") +
-      scale_color_manual(values = c("NO" = "red", "NO2" = "blue", "NOx" = "green", "O3" = "purple", "SO2" = "orange", "CO" = "brown")) +
+      scale_color_manual(values = c("NO" = "red", "NO2" = "blue", "NOx" = "green", "O3" = "purple", "SO2" = "orange", "CO" = "brown", "C6H6" = "pink", "C7H8" = "black", "C8H10" = "yellow")) +
       labs(color = "Código") +
       coord_cartesian(ylim = c(0, 100)) +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))  # Rotar las etiquetas del eje x
@@ -278,15 +274,11 @@ for (dia in orden_dias) {
 ```{r}
 require("dplyr")
 
-`Avda. Francia`$gases_total <- rowSums(`Avda. Francia`[, c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO')], na.rm = TRUE)
-
-# Visualiza el DataFrame resultante
-print(`Avda. Francia`)
-
+Viveros$gases_total <- rowSums(Viveros[, c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')], na.rm = TRUE)
 ```
 
 ```{r}
-media_diaria <- `Avda. Francia` %>%
+media_diaria <- Viveros %>%
   group_by(`Dia de la semana`, Hora) %>%
   summarise(media_gases_total = mean(gases_total, na.rm = TRUE))
 
@@ -309,6 +301,9 @@ ggsave("./grafs/medias_gases_total.png", p3, width = 10, height = 6, units = "in
 
 ## Análisis bivariante
 
+```{r}
+#ggpairs(Viveros[, c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')], na.rm=TRUE)
+```
 
 
 # Análisis de outliers 
