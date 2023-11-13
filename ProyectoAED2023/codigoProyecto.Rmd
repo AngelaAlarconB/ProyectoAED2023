@@ -113,10 +113,11 @@ valores_faltantes <- sapply(rvvcca_d_horarios_2016_2020, function(x) sum(is.na(x
 \textbf{SO2} & 91245 & \textbf{Fecha creacion} & 0 \\ \hline
 \textbf{CO} & 236277 & & \\ \hline
 \end{tabular}
-\caption{Número de valores faltantes.}
+\caption{Número de valores faltantes de cada variable.}
+\label{tabla1}
 \end{table}
 
-Podemos ver como hay variables con un gran número de valores faltantes, en especial, en los contaminantes atmosféricos y la información meteorológica. Esto es debido a que cada estación dispone de unos sensores distintos de medición de estos fenómenos. Además, el ruido también dispone de muchos valores faltantes, ya que depende de lo tranquila que sea cada estación.
+Podemos ver en la Tabla \ref{tabla1} como hay variables con un gran número de valores faltantes, en especial, en los contaminantes atmosféricos y la información meteorológica. Esto es debido a que cada estación dispone de unos sensores distintos de medición de estos fenómenos. Además, el ruido también dispone de muchos valores faltantes, ya que depende de lo tranquila que sea cada estación.
 
 Por tanto, para poder realizar un mejor análisis vamos a agrupar nuestro dataframe por `Estacion`:  
 ```{r}
