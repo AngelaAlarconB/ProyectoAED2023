@@ -91,13 +91,32 @@ Observamos que contamos con las siguientes variables:
 El estudio de los valores faltantes es esencial para garantizar que los análisis de datos sean sólidos y confiables. Como en el resultado previo hemos identificado valores faltantes, en este apartado procederemos a analizarlos. Primero, realizamos un resumen de la cantidad de valores faltantes en cada columna:
 ```{r tabla1}
 valores_faltantes <- sapply(rvvcca_d_horarios_2016_2020, function(x) sum(is.na(x)))
-kable(valores_faltantes)
 ```
 
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Id} & 0 & \textbf{Velocidad del viento} & 7874 \\ \hline
+\textbf{Fecha} & 0 & \textbf{Direccion del viento} & 6020 \\ \hline
+\textbf{Dia de la semana} & 0 &\textbf{NH3} & 313088 \\ \hline
+\textbf{Dia del mes} & 0 & \textbf{C7H8} & 313156 \\ \hline
+\textbf{Hora} & 0 & \textbf{C6H6} & 313635 \\ \hline
+\textbf{Estacion} & 0 & \textbf{Ruido} & 309508 \\ \hline
+\textbf{PM1} & 286441 & \textbf{C8H10} & 313053 \\ \hline
+\textbf{PM2.5} & 183359 & \textbf{Temperatura} & 9033 \\ \hline
+\textbf{PM10} & 183354 & \textbf{Humedad relativa} & 16357 \\ \hline
+\textbf{NO} & 88740 & \textbf{Presion} & 6276 \\ \hline
+\textbf{NO2} & 71383 & \textbf{Radiacion} & 6814 \\ \hline
+\textbf{NOx} & 88738 & \textbf{Precipitacion} & 7414 \\ \hline
+\textbf{O3} & 87741 & \textbf{Velocidad maxima del viento} & 8045 \\ \hline
+\textbf{SO2} & 91245 & \textbf{Fecha creacion} & 0 \\ \hline
+\textbf{CO} & 236277 & & \\ \hline
+\end{tabular}
+\caption{Número de valores faltantes.}
+\end{table}
 
 Podemos ver como hay variables con un gran número de valores faltantes, en especial, en los contaminantes atmosféricos y la información meteorológica. Esto es debido a que cada estación dispone de unos sensores distintos de medición de estos fenómenos. Además, el ruido también dispone de muchos valores faltantes, ya que depende de lo tranquila que sea cada estación.
-
-Por otra parte, vemos en la gráfica \ref{fig:fig1} que los contaminantes atmosféricos y el ruido son los que proporcionalmente tienen más valores faltantes.
 
 Por tanto, para poder realizar un mejor análisis vamos a agrupar nuestro dataframe por `Estacion`:  
 ```{r}
@@ -149,8 +168,6 @@ colnames(tabla_zonas)[17] <- "V viento"
 colnames(tabla_zonas)[29] <- "V_máx viento"
 tabla_zonas <- subset(tabla_zonas, select = -c(Zona,Id,Fecha,`Dia de la semana`,`Dia del mes`,Hora,Estacion,`Fecha creacion`))
 tabla_numeric <- as.data.frame(sapply(tabla_zonas, as.numeric))
-
-
 ```
 
 
@@ -169,27 +186,22 @@ pheatmap(tabla_numeric, color=hcl.colors(2,palette = "BluYl"),
 
 ## Análisis univariante
 
-Hemos visto anteriormente que la información meteorológica sí se mide en todas las estaciones, lo cual es relevante para saber las condiciones meteorológicas de cada estación. Por tanto, vamos a calcular los estadísticos básicos de la información meteorológica más importante según la estación:
+Hemos visto anteriormente que todos los contaminantes atmosféricos sí se miden en la estación Viveros. Por tanto, vamos a calcular los estadísticos básicos de los contaminantes atmosféricos para la estación Viveros:
 ```{r tabla2,warning=FALSE}
-calcular_estadisticas_estacion <- function(estacion_data, estacion_nombre) {
-  estacion_data %>%
-    summarise(across(c("Temperatura", "Presion", "Radiacion"), list(mean = mean, sd = sd, 
-      median = median, IQR = IQR), na.rm = TRUE)) %>%
-    pivot_longer(cols = -Estacion, names_to = "variable", values_to = "valor") %>%
-    separate(variable, into = c("Meteorologia", "stat"), sep = "_") %>%
-    pivot_wider(names_from = "stat", values_from = "valor") %>%
-    mutate(Estacion = estacion_nombre) %>%
-    select(Meteorologia, Estacion, mean, sd, median, IQR)
-}
-resultados_totales <- lapply(nombres_dataframes, function(estacion) {
-  calcular_estadisticas_estacion(lista_dataframes[[estacion]], estacion)
-}) %>%
-  bind_rows() %>%
-  arrange(Meteorologia) 
-kable(resultados_totales)
+resultados_totales <- Viveros %>%
+  summarise(across(c("NO", "NO2", "NOx", "O3", "SO2", "CO"), list(mean = mean, sd = sd, 
+    median = median, IQR = IQR), na.rm = TRUE)) %>%
+  pivot_longer(cols = -Estacion, names_to = "variable", values_to = "valor") %>%
+  separate(variable, into = c("Contaminante", "stat"), sep = "_") %>%
+  pivot_wider(names_from = "stat", values_from = "valor") %>%
+  mutate(Estacion = "Viveros") %>%
+  select(Contaminante, mean, sd, median, IQR) %>%
+  arrange(Contaminante) 
+
+kable(resultados_totales, caption="Estadísticos básicos de la estación Viveros.")
 ``` 
 
-En cuanto a la presión atmosférica, se observa que todas las estaciones tienen una media cercana a 1004, con variabilidad baja representada por la desviación estándar y la amplitud intercuartílica (IQR). En cuanto a la radiación, se observa una variabilidad significativa en los valores, con Avda. Francia mostrando una media considerablemente más baja que otras estaciones. Por último, en temperatura, la estación Nazaret Meteo presenta valores más altos en comparación con las demás, evidenciando una mayor variabilidad en este parámetro. 
+La tabla de estadísticas descriptivas para los contaminantes del aire destaca diferencias notables entre ellos. Mientras el monóxido de carbono (CO) muestra niveles bajos y poca variabilidad, el dióxido de nitrógeno (NO) exhibe una variabilidad significativa con una media más alta. El dióxido de nitrógeno (NO2) presenta una distribución asimétrica, y el óxido de nitrógeno (NOx) muestra una amplia dispersión de datos. El ozono (O3) tiene una distribución relativamente simétrica, y el dióxido de azufre (SO2) muestra concentración cercana a la media con moderada variabilidad.
 
 
 ----recolocar---------
