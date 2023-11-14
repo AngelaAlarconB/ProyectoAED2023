@@ -45,7 +45,9 @@ head(rvvcca_d_horarios_2016_2020)
 Convertimos la columna `Estacion` y `Dia de la semana` en factor:
 ```{r}
 rvvcca_d_horarios_2016_2020$Estacion <- as.factor(rvvcca_d_horarios_2016_2020$Estacion)
-rvvcca_d_horarios_2016_2020$`Dia de la semana` <- factor(rvvcca_d_horarios_2016_2020$`Dia de la semana`, levels = c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"))
+rvvcca_d_horarios_2016_2020$`Dia de la semana` <- factor(rvvcca_d_horarios_2016_2020$
+`Dia de la semana`, levels = c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado",
+                               "Domingo"))
 ```
 
 Nos damos cuenta de que la columna `Hora` está en un formato complejo de manejar:
@@ -68,7 +70,8 @@ rvvcca_d_horarios_2016_2020 <- rvvcca_d_horarios_2016_2020[indices_orden, ]
                         
 Eliminamos todas las columnas vacías ya que no nos aportan ninguna información. En este caso, solo se eliminará la columna `Fecha baja`.
 ```{r results='hide'}
-rvvcca_d_horarios_2016_2020 <- rvvcca_d_horarios_2016_2020[, colSums(is.na(rvvcca_d_horarios_2016_2020)) < nrow(rvvcca_d_horarios_2016_2020)]
+rvvcca_d_horarios_2016_2020 <- rvvcca_d_horarios_2016_2020[,
+colSums(is.na(rvvcca_d_horarios_2016_2020)) < nrow(rvvcca_d_horarios_2016_2020)]
 ```
 
 Utilizamos la función `glimpse` para obtener una visión general de los datos:
@@ -164,7 +167,9 @@ for (zona in 1:length(lista_dataframes)) {
 rownames(tabla_zonas) <-tabla_zonas$Zona
 colnames(tabla_zonas)[17] <- "V viento"
 colnames(tabla_zonas)[29] <- "V_máx viento"
-tabla_zonas <- subset(tabla_zonas, select = -c(Zona,Id,Fecha,`Dia de la semana`,`Dia del mes`,Hora,Estacion,`Fecha creacion`))
+tabla_zonas <- subset(tabla_zonas, select = -c(Zona,Id,Fecha,`Dia de la semana`,
+                                               `Dia del mes`,Hora,Estacion,
+                                               `Fecha creacion`))
 tabla_numeric <- as.data.frame(sapply(tabla_zonas, as.numeric))
 ```
 
@@ -232,18 +237,36 @@ Observamos que el dióxido de nitrógeno (NO2) tiene la media más alta con 33.0
 La desviación estándar (sd) indica la dispersión de los datos con respecto a la media. Por ejemplo, el dióxido de nitrógeno (NO2) tiene una sd de 23.68, lo que sugiere una variabilidad considerable en las concentraciones de NO2. En contraste, el monóxido de carbono (CO) tiene una sd mucho más baja de 0.11, indicando una menor variabilidad en sus niveles. 
 
 
+## Análisis bivariante
 
-Vamos ahora a estudiar la evolución de las concentraciones según el día de a semana cada hora:
-```{r,message=FALSE}
-dias_semana <- unique(`Pista Silla`$`Dia de la semana`)
-par(mfrow = c(5, 2))
+```{r echo=F,eval=FALSE, message=FALSE}
+vars_of_interest <- c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')
+df_bivariante <- `Pista Silla`[, vars_of_interest]
+df_bivariante <- drop_na(df_bivariante)
+ggpairs(df_bivariante)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
-if (!dir.exists("./grafs")) {
-  dir.create("./grafs")
-}
 
-orden_dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
+```{r, hide=T, eval=F, echo=FALSE}
+ggsave(filename = "grafs/correlation.png")
+```
+```{r}
+knitr::include_graphics("grafs/correlation.png")
+```
 
+Se evidencia una relación lineal clara entre las variables NO2, NO y NOx, con una correlación superior al 0.7 entre ellas. Esta asociación tiene fundamentos sólidos, dado que los óxidos de nitrógeno (NOx) son compuestos químicos formados por átomos de nitrógeno y oxígeno. Entre los óxidos de nitrógeno más prevalentes se encuentran el óxido nítrico (NO) y el dióxido de nitrógeno (NO2), por lo que el término NOx engloba la mezcla de estos óxidos, indicando que un incremento en NO y NO2 conlleva un aumento en NOx.  
+
+La justificación de esta relación se encuentra en el proceso de formación de estos compuestos, principalmente durante la combustión de combustibles a elevadas temperaturas, como la que ocurre en motores de vehículos, centrales eléctricas y otras instalaciones industriales. Es relevante destacar que el NO2 es un contaminante atmosférico de considerable importancia.   
+
+Por consiguiente, a partir de este punto, se considera adecuado enfocar el análisis exclusivamente en el NOx para simplificar la investigación, dada su representatividad y la relación intrínseca con los óxidos de nitrógeno clave en la atmósfera.   
+
+
+# Impacto de las Horas de Desplazamiento Laboral en la Calidad del Aire
+
+Una vez hecho el análisis podemos comenzar a dar respuesta a nuestras preguntas iniciales. Para ello, vamos a realizar la visualización de la concentración de contaminantes por horas del día, realizando a su vez, la comparación entre días de la semana.
+
+```{r,message=FALSE, echo=FALSE}
 df_media <- `Pista Silla` %>%
   group_by(`Dia de la semana`, Hora) %>%
   summarise(
@@ -259,7 +282,9 @@ df_media <- `Pista Silla` %>%
   )
 ```
 
-```{r ,fig.width=6, fig.height=2.5,echo=FALSE}
+```{r ,echo =FALSE, fig.width=6, fig.height=2.5}
+orden_dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
+
 for (dia in orden_dias) {
   df_media_dia <- df_media[df_media$`Dia de la semana` == dia, ]
 
@@ -291,17 +316,19 @@ for (dia in orden_dias) {
 
     print(p)
 
-    ggsave(paste("./grafs/grafico_", dia, ".png"), plot = p, device = "png", width = 8, height = 6, units ="in")
+    #ggsave(paste0("./grafs/grafico_", dia, ".png"), plot = p, device = "png", width = 6, height = 2.5, units ="in")
   }
 }
 ```
 
-```{r}
+
+
+```{r, echo=FALSE}
 `Pista Silla`$gases_total <- rowSums(`Pista Silla`[, c('NO', 'NO2', 'NOx', 'O3', 'SO2', 
   'CO', 'C6H6', 'C7H8', 'C8H10')], na.rm = TRUE)
 ```
 
-```{r , message=FALSE, warning=FALSE,echo=FALSE}
+```{r , message=FALSE, warning=FALSE,echo=FALSE, fig.width=7, fig.height=5}
 media_diaria <- `Pista Silla` %>%
   group_by(`Dia de la semana`, Hora) %>%
   summarise(media_gases_total = mean(gases_total, na.rm = TRUE))
@@ -318,20 +345,31 @@ p3<-ggplot(media_diaria, aes(x = Hora, y = media_gases_total, color = `Dia de la
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
 print(p3)
+```
+
+```{r, eval=FALSE, echo=FALSE}
 ggsave("./grafs/medias_gases_total.png", p3, width = 10, height = 6, units = "in", dpi = 300)
 ```
 
 
 
-## Análisis bivariante
+Podemos comprobar como la conducción de vehículos emite una variedad de gases que tienen un impacto significativo en la calidad del aire y en la salud pública. Entre los principales contaminantes vehiculares nos encontramos los que se registran en nuestro `dataset`. Hemos recopilado información sobre ellos:
 
-```{r}
-#vars_of_interest <- c('Dia de la semana', 'NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')
-#df_bivariante <- `Pista Silla`[, vars_of_interest]
-#media_por_dia <- aggregate(. ~ `Dia de la semana`, data = df_bivariante, mean, na.rm = TRUE)
-#ggpairs(media_por_dia[c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')])
-```
+* Óxidos de Nitrógeno (NO, NO$_2$ y NO$_x$): Producidos durante la combustión a alta temperatura en motores de vehículos. Contribuyen a la formación de ozono troposférico y puede irritar las vías respiratorias.
 
+* Monóxido de Carbono (CO): Resulta de la combustión incompleta de carbono en el motor. Es peligroso porque interfiere con la capacidad de la sangre para transportar oxígeno. Puede tener efectos tóxicos.
+
+* Óxidos de Nitrógeno (NO$_x$): Contribuye a la formación de smog y afectan la calidad del aire
+
+* Hidrocarburos (C$_6$H$_6$ C$_7$H$_8$ y C$_8$H$_10$): Provienen de la evaporación de combustibles y emisiones de escape. Algunos hidrocarburos son cancerígenos, y otros pueden contribuir a la formación de ozono y smog.
+
+
+El incremento sustancial de estos contaminantes durante las horas de máximo tráfico se debe a la mayor actividad vehicular y la consiguiente combustión de combustibles fósiles. Está muy claro que los picos de concentración de estos gases no son casuales, ocurren en aquellos momentos de tráfico elevado, las gráficas respaldan esta afirmación. Los picos ocurren:
+
+* En días laborables
+* A las horas de entrar a trabajar/estudiar.  
+
+ Este fenómeno destaca la necesidad de estrategias para mitigar las emisiones vehiculares y mejorar la calidad del aire en entornos urbanos.
 
 # Análisis de outliers 
 
