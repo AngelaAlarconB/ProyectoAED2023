@@ -431,9 +431,14 @@ El incremento sustancial de estos contaminantes durante las horas de máximo tr�
  Este fenómeno destaca la necesidad de estrategias para mitigar las emisiones vehiculares y mejorar la calidad del aire en entornos urbanos. Un estudio más exhaustivo podría encargarse a expertos químicos.
 
 # Análisis de outliers 
+```{r}
+vars_of_interest <- c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')
+```
 
+A continuación, exploraremos la calidad del aire mediante boxplots que representan las concentraciones de dióxido de nitrógeno (NO$_2$) y ozono (O$_3$).   
+Comenzaremos con la variable `NO2`, ya que se trata de una medida representativa de los picos de contaminación del aire. Cada gráfico proporciona una visión detallada de la distribución de esta sustancias en las distintas estaciones de la red de vigilancia atmosférica de la ciudad de València.
+Comentaremos los resultados al final.
 
-A continuación, exploraremos la calidad del aire mediante boxplots que representan las concentraciones de dos sustancias fundamentales: dióxido de nitrógeno (NO2) y ozono (O3). Cada gráfico proporciona una visión detallada de la distribución de estas sustancias en las distintas estaciones de la red de vigilancia atmosférica de la ciudad de València.  
 ```{r fig3, fig.cap="Diagramas de caja de NO2 en cada estación.\\label{fig:fig3}"}
 generate_boxplot <- function(data, title) {
   boxplot(data, main = title,col = "lightpink", border = "darkblue")
@@ -451,7 +456,8 @@ for (nombre_df in nombres_dataframes) {
   }
 }
 ```
-Observamos una notable presencia de outliers en la variable `NO2` en todas las estaciones, destacando en la parte superior de los boxplots. Estos boxplots son estrechos, lo que sugiere que la mayor parte de los datos se concentra en un rango reducido de concentraciones de dióxido de nitrógeno. Sin embargo, la presencia de numerosos outliers en la parte superior indica que a menudo se generan concentraciones inusualmente altas de esta sustancia en el aire.
+Observamos una notable presencia de outliers en la variable `NO2` en todas las estaciones, destacando en la parte superior de los boxplots. Estos boxplots son estrechos, lo que indica una consistencia en las concentraciones normales de NO2, lo cual sugiere que la calidad del aire se mantiene relativamente estable en condiciones regulares. Sin embargo, la presencia de numerosos outliers en la parte superior indica que a menudo se generan concentraciones inusualmente altas de esta sustancia en el aire. Esto coincide con lo obtenido en las gráficas de contaminación por horas, ya que esta variable presentaba picos muy pronunciados a las horas puntas de tráfico de forma regular. Por tanto, podemos deducir que no se trata de valores atípicos, sino valores que reflejan situaciones específicas, como son los picos de tráfico en este caso. Afirmamos por tanto que, aunque estadísticamente considerados como outliers, estos valores son consistentes con los patrones observados en las gráficas de contaminación por horas.
+
 
 ```{r fig4, fig.cap="Diagramas de caja de O3 en cada estación. \\label{fig:fig4}"}
 par(mfrow = c(2, 4), mar = c(4, 4, 2, 1),cex.main = 0.8)
@@ -540,9 +546,8 @@ detectar_outliers <- function(x) {
 }
 
 
-columnas_a_excluir <- c(1:6, ncol(df))
-col <- setdiff(names(df), names(df)[columnas_a_excluir])
-outliers_resultados <- detectar_outliers(Viveros[col])
+
+outliers_resultados <- detectar_outliers(`Pista Silla`[,vars_of_interest])
 
 plots <- lapply(outliers_resultados, function(result) {
   ggplot(result, aes(x = Variable, y = Outliers, fill = Variable)) +
@@ -550,15 +555,22 @@ plots <- lapply(outliers_resultados, function(result) {
     labs(title = unique(result$Metodo),
          x = "Variable",
          y = "Cantidad de Outliers") +
-    theme_minimal() + theme(axis.text.x = element_blank(), legend.position = "none")
+    theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
 })
 
 grid.arrange(grobs = plots, ncol = 2)
 ```
 
 
-La información resultante se presenta de manera clara y comparativa a través de gráficos de barras en la Figura \ref{fig:fig5}. Cada barra en estos gráficos representa la cantidad de outliers detectados para una variable específica, empleando diferentes métodos de detección. En este caso, lo hemos aplicado sobre los datos de la estación Viveros.
+La información resultante se presenta de manera clara y comparativa a través de gráficos de barras. Cada barra en estos gráficos representa la cantidad de outliers detectados para una variable específica, empleando diferentes métodos de detección. En este caso, lo hemos aplicado sobre los datos de la estación Viveros.
 
 
 
 # Conclusiones
+
+
+Nuestro objetivo principal era determinar si existía un aumento en la concentración de contaminantes atmosféricos en horas punta. Para ello estudiamos la concentración pormenorizada de los gases por horas y días para una zona de alto tránsito con gran variedad de sensores. A partir de los datos analizados en este trabajo nos aventuramos a afirmar que dicha relación existe. La concentración de gases experimenta picos en horas las horas punta de los días laborables. Por otro lado, aunque los picos de contaminación son menores los sábados y domingos, estos existen en las mismas horas, a menor escala. Los compuestos que más ven incrementada su concentración son los óxidos de nitrógeno, muy estrechamente relacionados con los combustibles fósiles. La concentracione de O$_3$ no presenta la misma dependencia con el tráfico que los óxidos de nitrógeno. Es probable que su comportamiento a lo largo del día no dependa estrechamente de factores antropológicos. 
+
+
+
+
