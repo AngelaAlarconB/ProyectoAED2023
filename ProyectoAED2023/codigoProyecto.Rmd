@@ -259,7 +259,7 @@ Se evidencia una relación lineal clara entre las variables NO2, NO y NOx, con u
 
 La justificación de esta relación se encuentra en el proceso de formación de estos compuestos, principalmente durante la combustión de combustibles a elevadas temperaturas, como la que ocurre en motores de vehículos, centrales eléctricas y otras instalaciones industriales. Es relevante destacar que el NO2 es un contaminante atmosférico de considerable importancia.   
 
-Por consiguiente, a partir de este punto, se considera adecuado enfocar el análisis exclusivamente en el NOx para simplificar la investigación, dada su representatividad y la relación intrínseca con los óxidos de nitrógeno clave en la atmósfera.   
+Por consiguiente, a partir de este punto, se podría considera enfocar el análisis exclusivamente en el NOx para simplificar la investigación, dada su representatividad y la relación intrínseca con los óxidos de nitrógeno clave en la atmósfera.   
 
 
 # Impacto de las Horas de Desplazamiento Laboral en la Calidad del Aire
@@ -282,7 +282,9 @@ df_media <- `Pista Silla` %>%
   )
 ```
 
-```{r ,echo =FALSE, fig.width=6, fig.height=2.5}
+
+
+```{r ,echo =FALSE, fig.width=6, fig.height=4}
 orden_dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
 
 for (dia in orden_dias) {
@@ -296,31 +298,82 @@ for (dia in orden_dias) {
 
     df_media_dia$Hora <- as.POSIXlt(df_media_dia$Hora, format = "%H:%M:%S")$hour
 
-    p <- ggplot(df_media_dia, aes(x = Hora)) +
-      geom_point(aes(y = media_NO, color = "NO"), size = 2) +
-      geom_point(aes(y = media_NO2, color = "NO2"), size = 2) +
-      geom_point(aes(y = media_NOx, color = "NOx"), size = 2) +
-      geom_point(aes(y = media_O3, color = "O3"), size = 2) +
-      geom_point(aes(y = media_SO2, color = "SO2"), size = 2) +
-      geom_point(aes(y = media_CO, color = "CO"), size = 2) +
-      geom_point(aes(y = media_C6H6, color = "C6H6"), size = 2) +
-      geom_point(aes(y = media_C7H8, color = "C7H8"), size = 2) +
-      geom_point(aes(y = media_C8H10, color = "C8H10"), size = 2) +
-      ggtitle(paste("Evolución de las concentraciones los", titulo)) +
-      xlab("Hora") +
-      ylab("Concentración") +
-      scale_color_manual(values = c("NO" = "red", "NO2" = "blue", "NOx" = "green", "O3" = "purple", "SO2" = "orange", "CO" = "brown", "C6H6" = "pink", "C7H8" = "black", "C8H10" = "yellow")) +
-      labs(color = "Código") +
-      coord_cartesian(ylim = c(0, 150)) +
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+p <- ggplot(df_media_dia, aes(x = Hora)) +
+  geom_point(aes(y = media_NO, color = "NO"), size = 2) +
+  geom_point(aes(y = media_NO2, color = "NO2"), size = 2) +
+  geom_point(aes(y = media_NOx, color = "NOx"), size = 2) +
+  geom_point(aes(y = media_O3, color = "O3"), size = 2) +
+  geom_point(aes(y = media_SO2, color = "SO2"), size = 2) +
+  geom_point(aes(y = media_CO, color = "CO"), size = 2) +
+  geom_point(aes(y = media_C6H6, color = "C6H6"), size = 2) +
+  geom_point(aes(y = media_C7H8, color = "C7H8"), size = 2) +
+  geom_point(aes(y = media_C8H10, color = "C8H10"), size = 2) +
+  ggtitle(paste("Evolución de las concentraciones los", titulo)) +
+  xlab("Hora") +
+  ylab("Concentración (Escala Lineal)") +
+  scale_color_manual(values = c("NO" = "red", "NO2" = "blue", "NOx" = "green", "O3" = "purple", "SO2" = "orange", "CO" = "brown", "C6H6" = "pink", "C7H8" = "black", "C8H10" = "yellow")) +
+  labs(color = "Código") +
+  coord_cartesian(ylim = c(0.05, 150)) +  # Ajustar límites del eje y
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
-    print(p)
+if (dia %in% c("Martes")) {
+  print(p)
 
-    #ggsave(paste0("./grafs/grafico_", dia, ".png"), plot = p, device = "png", width = 6, height = 2.5, units ="in")
+}
+
+
+    ggsave(paste0("./grafs/grafico_lin", dia, ".png"), plot = p, device = "png", width = 6, height = 2.5, units ="in")
+  }
+}
+```
+Somos capaces de apreciar los picos de contaminación en horas punta, sin embargo, los valores de las concentraciones de hidrocarburos son bajos, situándose en el extremo inferior de la imagen y solapándose entre ellos. Es por ello que hemos tomado la decisión de representar estos datos en escala logarítmica para varios días. Porque la forma de las gráficas son muy similares en los días laborables, solo mostraremos los martes, pero el resto de gráficas pueden consultarse en la documentación del trabajo.
+
+
+```{r ,echo =FALSE, fig.width=6, fig.height=4}
+orden_dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
+
+for (dia in orden_dias) {
+  df_media_dia <- df_media[df_media$`Dia de la semana` == dia, ]
+
+  if (nrow(df_media_dia) > 0) {
+    # Ajusta el título para manejar correctamente las tildes y la s del plural
+    titulo <- ifelse(dia == "Sabado", "Sábados", 
+                     ifelse(dia == "Domingo", "Domingos", 
+                            ifelse(dia == "Miercoles", "Miércoles", dia)))
+
+    df_media_dia$Hora <- as.POSIXlt(df_media_dia$Hora, format = "%H:%M:%S")$hour
+
+p <- ggplot(df_media_dia, aes(x = Hora)) +
+  geom_point(aes(y = media_NO, color = "NO"), size = 2) +
+  geom_point(aes(y = media_NO2, color = "NO2"), size = 2) +
+  geom_point(aes(y = media_NOx, color = "NOx"), size = 2) +
+  geom_point(aes(y = media_O3, color = "O3"), size = 2) +
+  geom_point(aes(y = media_SO2, color = "SO2"), size = 2) +
+  geom_point(aes(y = media_CO, color = "CO"), size = 2) +
+  geom_point(aes(y = media_C6H6, color = "C6H6"), size = 2) +
+  geom_point(aes(y = media_C7H8, color = "C7H8"), size = 2) +
+  geom_point(aes(y = media_C8H10, color = "C8H10"), size = 2) +
+  ggtitle(paste("Evolución de las concentraciones los", titulo)) +
+  xlab("Hora") +
+  ylab("Concentración (Escala Log)") +
+  scale_color_manual(values = c("NO" = "red", "NO2" = "blue", "NOx" = "green", "O3" = "purple", "SO2" = "orange", "CO" = "brown", "C6H6" = "pink", "C7H8" = "black", "C8H10" = "yellow")) +
+  labs(color = "Código") +
+  scale_y_log10() +  # Escala logarítmica en el eje y
+  coord_cartesian(ylim = c(0.05, 110)) +  # Ajustar límites del eje y
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+if (dia %in% c("Martes", "Viernes", "Sabado", "Domingo")) {
+  print(p)
+
+}
+
+
+    ggsave(paste0("./grafs/grafico_log", dia, ".png"), plot = p, device = "png", width = 6, height = 2.5, units ="in")
   }
 }
 ```
 
+Ahora que hemos representado las concentraciones en escala logartítmica, somos capaces percibir los picos de concentración incluso en aquellas variables menos presentes. Es de interés estudiar la variabilidad de las concentraciones en función del día de la semana. Porque disponemos de 9 gases para cada día de la semana para cada una de las 24h, hemos dedicido representar los valores absolutos de concentración. Véase la siguiente gráfica:
 
 
 ```{r, echo=FALSE}
@@ -346,14 +399,15 @@ p3<-ggplot(media_diaria, aes(x = Hora, y = media_gases_total, color = `Dia de la
 
 print(p3)
 ```
+Como comentábamos con anterioridad, los días lasborables y los que no son claramente distinguibles. Las concentraciones mantienen levemente la forma, a costa de reducir en gran medida sus valores absolutos. Esto es debido principalmente a la ausencia de necesidad de desplazarse al trabajo, al colegio o a otras zonas de interés.
+
 
 ```{r, eval=FALSE, echo=FALSE}
 ggsave("./grafs/medias_gases_total.png", p3, width = 10, height = 6, units = "in", dpi = 300)
 ```
 
 
-
-Podemos comprobar como la conducción de vehículos emite una variedad de gases que tienen un impacto significativo en la calidad del aire y en la salud pública. Entre los principales contaminantes vehiculares nos encontramos los que se registran en nuestro `dataset`. Hemos recopilado información sobre ellos:
+Podemos comprobar como la conducción de vehículos emite una variedad de gases que tienen un impacto significativo en la calidad del aire y en la salud pública. Entre los principales contaminantes vehiculares nos encontramos los que se registran en nuestro `dataset`. Todos ellos son residuos típicos de los combustibles fósiles. Hemos recopilado información sobre ellos:
 
 * Óxidos de Nitrógeno (NO, NO$_2$ y NO$_x$): Producidos durante la combustión a alta temperatura en motores de vehículos. Contribuyen a la formación de ozono troposférico y puede irritar las vías respiratorias.
 
@@ -369,7 +423,7 @@ El incremento sustancial de estos contaminantes durante las horas de máximo tr�
 * En días laborables
 * A las horas de entrar a trabajar/estudiar.  
 
- Este fenómeno destaca la necesidad de estrategias para mitigar las emisiones vehiculares y mejorar la calidad del aire en entornos urbanos.
+ Este fenómeno destaca la necesidad de estrategias para mitigar las emisiones vehiculares y mejorar la calidad del aire en entornos urbanos. Un estudio más exhaustivo podría encargarse a expertos químicos.
 
 # Análisis de outliers 
 
