@@ -1,9 +1,12 @@
 ---
-title: "Documento de cambios"
+title: "Análisis de la calidad del aire de las estaciones de Valencia"
 author: "Ángela Alarcón Ballester, Lucía Ponce Salmerón y Carlos Sánchez Polo"
 date: "`r Sys.Date()`"
+lang: "es"
 output:
-  pdf_document: default
+  pdf_document:
+    number_sections: true
+    toc: true
   html_document: default
 ---
 
@@ -22,10 +25,10 @@ library(dplyr) # Manipulación de datos
 library(tidyr) # Manipulación de datos
 library(ggplot2) # Gráficas
 library(gridExtra) # Gráficas
+library(GGally) # Gráficas
 library(pheatmap) # Para realizar operaciones
 library(purrr) # Mapas de calor
 library(knitr) # Tablas
-library(GGally)
 ``` 
 
 Cargamos y visualizamos los datos:
@@ -36,8 +39,8 @@ rvvcca_d_horarios_2016_2020 <-
   col_types = cols(Fecha = col_date(format = "%Y-%m-%d"), 
   `Fecha creacion` = col_date(format = "%Y-%m-%d"), ), trim_ws = TRUE) 
 ```
-Como se observa, las columnas `Fecha` y `Fecha creación` las definimos como fechas en formato "YYYY-MM-DD".         
 
+Como se observa, las columnas `Fecha` y `Fecha creación` las definimos como fechas en formato "YYYY-MM-DD".         
 ```{r results='hide'}
 head(rvvcca_d_horarios_2016_2020)
 ```
@@ -147,11 +150,10 @@ Convertimos la lista de dataframes en dataframes independientes:
 list2env(lista_dataframes, envir = .GlobalEnv)
 ```
 
-Ahora, veamos que parámetros se han medido en cada estación:
+Veamos con más detalle los parámetros que se han medido en cada estación:
 ```{r}
 parametros <- names(rvvcca_d_horarios_2016_2020)
 
-#Creamos dataframe vacío
 tabla_zonas <- data.frame(Zona = character(0), stringsAsFactors = FALSE)
 
 for (zona in 1:length(lista_dataframes)) {
@@ -174,7 +176,7 @@ tabla_numeric <- as.data.frame(sapply(tabla_zonas, as.numeric))
 ```
 
 
-```{r fig2,fig.cap="Variables medidas en cada estación.\\label{fig:fig2}", fig.width=6, fig.height=4}
+```{r fig2,fig.cap="Variables medidas en cada estación.\\label{fig:fig2}", fig.width=6, fig.height=4,echo=FALSE}
 # Crea el heatmap con colores azul y amarillo
 pheatmap(tabla_numeric, color=hcl.colors(2,palette = "BluYl"), 
          labels_row =rownames(tabla_zonas),cluster_rows = F, 
@@ -183,8 +185,7 @@ pheatmap(tabla_numeric, color=hcl.colors(2,palette = "BluYl"),
          border_color = "black")
 ```
 
-Como la estación "Pista Silla" es la que menos columnas vacías tiene, es la que vamos a considerar para nuestro estudio. Veamos cuál es el porcentaje de valores faltantes en cada una de sus columnas, para ver qué variables pueden sernos de utilidad:
-
+Podemos ver en la Figura \ref{fig:fig2} como la estación Pista Silla es la que menos columnas vacías tiene, es la que vamos a considerar para nuestro estudio. Veamos cuál es el porcentaje de valores faltantes en cada una de sus columnas, para ver qué variables pueden sernos de utilidad:
 ```{r, include=FALSE}
 valores_faltantes <- sapply(`Pista Silla`, function(x) sum(is.na(x)))
 porcentaje_de_valores_faltantes <- valores_faltantes/nrow(`Pista Silla`)
@@ -204,7 +205,7 @@ round(porcentaje_de_valores_faltantes,3)
 \textbf{O3} & 0.065 & \textbf{Velocidad maxima del viento} & 0.021 \\ \hline
 \textbf{SO2} & 0.070 & \textbf{CO} & 0.092  \\ \hline
 \end{tabular}
-\caption{Porcentaje de valores faltantes de cada variable para la estación "Pista Silla".}
+\caption{Porcentaje de valores faltantes de cada variable para la estación Pista Silla.}
 \label{tabla2}
 \end{table}
 
@@ -251,11 +252,15 @@ ggpairs(df_bivariante)+
 ```{r, hide=T, eval=F, echo=FALSE}
 ggsave(filename = "grafs/correlation.png")
 ```
-```{r}
-knitr::include_graphics("grafs/correlation.png")
-```
 
-Se evidencia una relación lineal clara entre las variables NO2, NO y NOx, con una correlación superior al 0.7 entre ellas. Esta asociación tiene fundamentos sólidos, dado que los óxidos de nitrógeno (NOx) son compuestos químicos formados por átomos de nitrógeno y oxígeno. Entre los óxidos de nitrógeno más prevalentes se encuentran el óxido nítrico (NO) y el dióxido de nitrógeno (NO2), por lo que el término NOx engloba la mezcla de estos óxidos, indicando que un incremento en NO y NO2 conlleva un aumento en NOx.  
+\begin{figure}[ht]
+\centering
+\includegraphics[width=10cm, height=10cm]{grafs/correlation.png}
+\caption{Correlación}
+\label{correlacion}
+\end{figure}
+
+Se evidencia en la Figura \ref{correlacion} una relación lineal clara entre las variables NO2, NO y NOx, con una correlación superior al 0.7 entre ellas. Esta asociación tiene fundamentos sólidos, dado que los óxidos de nitrógeno (NOx) son compuestos químicos formados por átomos de nitrógeno y oxígeno. Entre los óxidos de nitrógeno más prevalentes se encuentran el óxido nítrico (NO) y el dióxido de nitrógeno (NO2), por lo que el término NOx engloba la mezcla de estos óxidos, indicando que un incremento en NO y NO2 conlleva un aumento en NOx.  
 
 La justificación de esta relación se encuentra en el proceso de formación de estos compuestos, principalmente durante la combustión de combustibles a elevadas temperaturas, como la que ocurre en motores de vehículos, centrales eléctricas y otras instalaciones industriales. Es relevante destacar que el NO2 es un contaminante atmosférico de considerable importancia.   
 
@@ -552,7 +557,7 @@ grid.arrange(grobs = plots, ncol = 2)
 ```
 
 
-La información resultante se presenta de manera clara y comparativa a través de gráficos de barras. Cada barra en estos gráficos representa la cantidad de outliers detectados para una variable específica, empleando diferentes métodos de detección. En este caso, lo hemos aplicado sobre los datos de la estación Viveros.
+La información resultante se presenta de manera clara y comparativa a través de gráficos de barras en la Figura \ref{fig:fig5}. Cada barra en estos gráficos representa la cantidad de outliers detectados para una variable específica, empleando diferentes métodos de detección. En este caso, lo hemos aplicado sobre los datos de la estación Viveros.
 
 
 
