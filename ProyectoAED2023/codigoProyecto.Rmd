@@ -140,7 +140,7 @@ for (estacion in nombres_dataframes) {
 ```
 
 Convertimos la lista de dataframes en dataframes independientes:
-```{r}
+```{r results='hide'}
 list2env(lista_dataframes, envir = .GlobalEnv)
 ```
 
@@ -212,7 +212,7 @@ Una vez que hemos visualizado y analizado los datos, podemos plantearnos ciertas
 
 ## Análisis univariante
 
-Como hemos mencionado, vamos a hacer un estudio de los contaminantes atmosféricos, por lo que únicamente consideraremos estos valores de ahora en adelante. Hemos visto anteriormente que todos los contaminantes atmosféricos sí se miden en la estación Pista Silla. Por tanto, vamos a calcular los estadísticos básicos de éstos:
+Como hemos mencionado, vamos a hacer un estudio de los contaminantes atmosféricos, por lo que únicamente consideraremos estos valores de ahora en adelante. Hemos visto anteriormente que todos los contaminantes atmosféricos sí se miden en la estación Pista Silla. Por tanto, vamos a calcular los estadísticos básicos de estos:
 ```{r tabla2,warning=FALSE}
 resultados_totales <- `Pista Silla` %>%
   summarise(across(c("NO", "NO2", "NOx", "O3", "SO2", "CO", "C6H6", "C7H8", "C8H10"), 
@@ -222,31 +222,25 @@ resultados_totales <- `Pista Silla` %>%
   separate(variable, into = c("Contaminante", "stat"), sep = "_") %>%
   pivot_wider(names_from = "stat", values_from = "valor") %>%
   mutate(Estacion = "Pista Silla") %>%
-  select(Contaminante, mean, sd, median, IQR) %>%
-  arrange(Contaminante) 
+  select(Contaminante, mean, sd, median, IQR) 
 
 kable(resultados_totales, caption="Estadísticos básicos de la estación Pista Silla.")
 ``` 
 
-La tabla de estadísticas descriptivas para los contaminantes del aire destaca diferencias notables entre ellos. Mientras el monóxido de carbono (CO) muestra niveles bajos y poca variabilidad, el dióxido de nitrógeno (NO) exhibe una variabilidad significativa con una media más alta. El dióxido de nitrógeno (NO2) presenta una distribución asimétrica, y el óxido de nitrógeno (NOx) muestra una amplia dispersión de datos. El ozono (O3) tiene una distribución relativamente simétrica, y el dióxido de azufre (SO2) muestra concentración cercana a la media con moderada variabilidad.
+Observamos que el dióxido de nitrógeno (NO2) tiene la media más alta con 33.01, seguido por el dióxido de azufre (SO2) con una media de 4.31. El monóxido de carbono (CO) tiene la concentración más baja con una media de 0.17. Además, se destaca que el rango intercuartílico (IQR) de los óxidos de nitrógeno (NOx) es amplio, indicando una variabilidad significativa en sus niveles.
 
-----comentar variables nuevas y cambiar lo que hay-----
+La desviación estándar (sd) indica la dispersión de los datos con respecto a la media. Por ejemplo, el dióxido de nitrógeno (NO2) tiene una sd de 23.68, lo que sugiere una variabilidad considerable en las concentraciones de NO2. En contraste, el monóxido de carbono (CO) tiene una sd mucho más baja de 0.11, indicando una menor variabilidad en sus niveles. 
 
-----recolocar---------
 
-```{r}
-require("ggplot2")
 
+Vamos ahora a estudiar la evolución de las concentraciones según el día de a semana cada hora:
+```{r,message=FALSE}
 dias_semana <- unique(`Pista Silla`$`Dia de la semana`)
 par(mfrow = c(5, 2))
 
 if (!dir.exists("./grafs")) {
   dir.create("./grafs")
 }
-```
-
-```{r}
-library(dplyr)
 
 orden_dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
 
@@ -263,20 +257,9 @@ df_media <- `Pista Silla` %>%
     media_C7H8 = mean(C7H8, na.rm = TRUE),
     media_C8H10 = mean(C8H10, na.rm = TRUE)
   )
-
 ```
 
-
-```{r}
-require("ggplot2")
-dias_semana <- unique(`Pista Silla`$`Dia de la semana`)
-par(mfrow = c(5, 2))
-
-if (!dir.exists("./grafs")) {
-  dir.create("./grafs")
-}
-orden_dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
-
+```{r ,fig.width=6, fig.height=2.5,echo=FALSE}
 for (dia in orden_dias) {
   df_media_dia <- df_media[df_media$`Dia de la semana` == dia, ]
 
@@ -285,6 +268,8 @@ for (dia in orden_dias) {
     titulo <- ifelse(dia == "Sabado", "Sábados", 
                      ifelse(dia == "Domingo", "Domingos", 
                             ifelse(dia == "Miercoles", "Miércoles", dia)))
+
+    df_media_dia$Hora <- as.POSIXlt(df_media_dia$Hora, format = "%H:%M:%S")$hour
 
     p <- ggplot(df_media_dia, aes(x = Hora)) +
       geom_point(aes(y = media_NO, color = "NO"), size = 2) +
@@ -303,26 +288,27 @@ for (dia in orden_dias) {
       labs(color = "Código") +
       coord_cartesian(ylim = c(0, 150)) +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-    
+
     print(p)
-    
+
     ggsave(paste("./grafs/grafico_", dia, ".png"), plot = p, device = "png", width = 8, height = 6, units ="in")
   }
 }
 ```
 
 ```{r}
-require("dplyr")
-
-`Pista Silla`$gases_total <- rowSums(`Pista Silla`[, c('NO', 'NO2', 'NOx', 'O3', 'SO2', 'CO', 'C6H6', 'C7H8', 'C8H10')], na.rm = TRUE)
+`Pista Silla`$gases_total <- rowSums(`Pista Silla`[, c('NO', 'NO2', 'NOx', 'O3', 'SO2', 
+  'CO', 'C6H6', 'C7H8', 'C8H10')], na.rm = TRUE)
 ```
 
-```{r warning=FALSE}
+```{r , message=FALSE, warning=FALSE,echo=FALSE}
 media_diaria <- `Pista Silla` %>%
   group_by(`Dia de la semana`, Hora) %>%
   summarise(media_gases_total = mean(gases_total, na.rm = TRUE))
 
 # Crea la gráfica de las medias diarias de 'gases_total' por día de la semana con puntos y dispersión horizontal
+media_diaria$Hora <- as.POSIXlt(media_diaria$Hora, format = "%H:%M:%S")$hour
+
 p3<-ggplot(media_diaria, aes(x = Hora, y = media_gases_total, color = `Dia de la semana`, group = `Dia de la semana`)) +
   geom_line(size = 1) +
   ggtitle("Medias diarias de Gases total por día de la semana") +
@@ -335,7 +321,6 @@ print(p3)
 ggsave("./grafs/medias_gases_total.png", p3, width = 10, height = 6, units = "in", dpi = 300)
 ```
 
-----recolocar--------
 
 
 ## Análisis bivariante
@@ -352,8 +337,6 @@ ggsave("./grafs/medias_gases_total.png", p3, width = 10, height = 6, units = "in
 
 
 A continuación, exploraremos la calidad del aire mediante boxplots que representan las concentraciones de dos sustancias fundamentales: dióxido de nitrógeno (NO2) y ozono (O3). Cada gráfico proporciona una visión detallada de la distribución de estas sustancias en las distintas estaciones de la red de vigilancia atmosférica de la ciudad de València.  
-
-
 ```{r fig3, fig.cap="Diagramas de caja de NO2 en cada estación.\\label{fig:fig3}"}
 generate_boxplot <- function(data, title) {
   boxplot(data, main = title,col = "lightpink", border = "darkblue")
