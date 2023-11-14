@@ -569,8 +569,11 @@ La información resultante se presenta de manera clara y comparativa a través d
 # Conclusiones
 
 
-Nuestro objetivo principal era determinar si existía un aumento en la concentración de contaminantes atmosféricos en horas punta. Para ello estudiamos la concentración pormenorizada de los gases por horas y días para una zona de alto tránsito con gran variedad de sensores. A partir de los datos analizados en este trabajo nos aventuramos a afirmar que dicha relación existe. La concentración de gases experimenta picos en horas las horas punta de los días laborables. Por otro lado, aunque los picos de contaminación son menores los sábados y domingos, estos existen en las mismas horas, a menor escala. Los compuestos que más ven incrementada su concentración son los óxidos de nitrógeno, muy estrechamente relacionados con los combustibles fósiles. La concentracione de O$_3$ no presenta la misma dependencia con el tráfico que los óxidos de nitrógeno. Es probable que su comportamiento a lo largo del día no dependa estrechamente de factores antropológicos. 
+Nuestra meta principal consistió en determinar si se observaba un incremento en la concentración de contaminantes atmosféricos durante las horas pico. Para lograrlo, examinamos detalladamente la concentración de gases por horas y días en una zona de alto tráfico, empleando una extensa variedad de sensores. Basándonos en los datos analizados en este estudio, afirmamos con confianza que efectivamente existe dicha relación.
 
+Durante los días laborables, la concentración de gases alcanza picos notables en las horas pico, mientras que los sábados y domingos también registran picos de contaminación en las horas convencionales, aunque en menor medida. En estos mismos días, se observan nuevos picos durante la tarde, posiblemente vinculados a desplazamientos de corta duración relacionados con el retorno de segundas residencias de fin de semana, actividades grupales alejadas del lugar de residencia u otras razones lúdico-sociales.
+
+Los compuestos que experimentan el mayor aumento en su concentración son los óxidos de nitrógeno, estrechamente ligados a los combustibles fósiles. A diferencia de los óxidos de nitrógeno, la concentración de O$_3$ no exhibe la misma dependencia del tráfico. Es probable que su comportamiento a lo largo del día no esté estrechamente vinculado a factores antropológicos.
 
 
 
