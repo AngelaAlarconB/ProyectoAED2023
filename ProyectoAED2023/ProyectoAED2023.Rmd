@@ -568,3 +568,79 @@ Los compuestos que experimentan el mayor aumento en su concentración son los ó
 
 
 
+
+-----------------------EXTRA--------------------------------------
+
+```{r}
+# Vector con los nombres de los compuestos
+compuestos <- c("NO","NO2", "NOx", "O3", "SO2", "CO", "C6H6", "C7H8", "C8H10")
+
+# Bucle for para generar histogramas y guardarlos
+for (compuesto in compuestos) {
+  # Generar el histograma
+  hist_data <- `Pista Silla`[[compuesto]]
+  hist_file <- paste("grafs/Histograma_", compuesto, ".png", sep = "")
+
+  # Guardar el histograma como un archivo PNG
+  png(hist_file)
+
+
+  hist(hist_data, main = paste("Histograma de Concentración de", compuesto),
+       xlab = "Concentración", ylab = "Frecuencia")
+  
+  dev.off()
+}
+
+
+```
+
+
+
+
+```{r}
+
+# Calcular el porcentaje de NA para las variables de interés
+porcentajes_na <- colMeans(is.na(`Pista Silla`[, compuestos])) * 100
+
+# Crear un gráfico de barras con ggplot2
+library(ggplot2)
+
+# Crear un objeto de datos para ggplot2
+data_plot <- data.frame(variable = names(porcentajes_na), porcentaje = porcentajes_na)
+
+# Crear el gráfico y ajustar el ancho de las barras
+pplot<- ggplot(data_plot, aes(x = variable, y = porcentaje, fill = factor(porcentaje == 100))) +
+  geom_bar(stat = "identity", width = 0.5) +  # Ajustar el ancho de las barras según sea necesario
+  scale_fill_manual(values = c("blue"), guide = 'none') +
+  labs(title = "Porcentaje de NA por Variable", y = "Porcentaje", x = "Variables") +
+  geom_text(aes(label = paste0(round(porcentaje, 2), "%")), vjust = -0.5)
+print(pplot)
+
+ggsave("grafs/Valores_NA.png", pplot, width = 8, height = 6, units = "in")
+```
+
+```{r}
+library(VIM)
+
+compuestos <- c("NO","NO2", "NOx", "O3", "SO2", "CO", "C6H6", "C7H8", "C8H10")
+
+colnames(`Pista Silla`)[6] <- "Pista Silla"
+
+agregado <- `Pista Silla`%>%
+  select(compuestos) %>%
+  aggr()
+ggsave("grafs/aggr.png", width = 8, height = 6, units = "in")
+
+colnames(`Pista Silla`)[6] <- "Estacion"
+```
+
+```{r}
+
+
+```
+
+
+
+
+
+
